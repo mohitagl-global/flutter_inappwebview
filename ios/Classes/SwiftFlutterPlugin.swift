@@ -24,17 +24,16 @@ import SafariServices
 
 public class SwiftFlutterPlugin: NSObject, FlutterPlugin {
     
+    static var instance: SwiftFlutterPlugin?
     var registrar: FlutterPluginRegistrar?
     var platformUtil: PlatformUtil?
-    var inAppWebViewManager: InAppWebViewManager?
+    var inAppWebViewStatic: InAppWebViewStatic?
     var myCookieManager: Any?
     var myWebStorageManager: Any?
     var credentialDatabase: CredentialDatabase?
     var inAppBrowserManager: InAppBrowserManager?
     var headlessInAppWebViewManager: HeadlessInAppWebViewManager?
     var chromeSafariBrowserManager: ChromeSafariBrowserManager?
-    var webAuthenticationSessionManager: WebAuthenticationSessionManager?
-    var printJobManager: PrintJobManager?
     
     var webViewControllers: [String: InAppBrowserWebViewController?] = [:]
     var safariViewControllers: [String: Any?] = [:]
@@ -43,26 +42,24 @@ public class SwiftFlutterPlugin: NSObject, FlutterPlugin {
         super.init()
         
         self.registrar = registrar
-        registrar.register(FlutterWebViewFactory(plugin: self) as FlutterPlatformViewFactory, withId: FlutterWebViewFactory.VIEW_TYPE_ID)
+        registrar.register(FlutterWebViewFactory(registrar: registrar) as FlutterPlatformViewFactory, withId: "com.pichillilorenzo/flutter_inappwebview")
         
-        platformUtil = PlatformUtil(plugin: self)
-        inAppBrowserManager = InAppBrowserManager(plugin: self)
-        headlessInAppWebViewManager = HeadlessInAppWebViewManager(plugin: self)
-        chromeSafariBrowserManager = ChromeSafariBrowserManager(plugin: self)
-        inAppWebViewManager = InAppWebViewManager(plugin: self)
-        credentialDatabase = CredentialDatabase(plugin: self)
+        platformUtil = PlatformUtil(registrar: registrar)
+        inAppBrowserManager = InAppBrowserManager(registrar: registrar)
+        headlessInAppWebViewManager = HeadlessInAppWebViewManager(registrar: registrar)
+        chromeSafariBrowserManager = ChromeSafariBrowserManager(registrar: registrar)
+        inAppWebViewStatic = InAppWebViewStatic(registrar: registrar)
+        credentialDatabase = CredentialDatabase(registrar: registrar)
         if #available(iOS 11.0, *) {
-            myCookieManager = MyCookieManager(plugin: self)
+            myCookieManager = MyCookieManager(registrar: registrar)
         }
         if #available(iOS 9.0, *) {
-            myWebStorageManager = MyWebStorageManager(plugin: self)
+            myWebStorageManager = MyWebStorageManager(registrar: registrar)
         }
-        webAuthenticationSessionManager = WebAuthenticationSessionManager(plugin: self)
-        printJobManager = PrintJobManager(plugin: self)
     }
     
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let _ = SwiftFlutterPlugin(with: registrar)
+        SwiftFlutterPlugin.instance = SwiftFlutterPlugin(with: registrar)
     }
     
     public func detachFromEngine(for registrar: FlutterPluginRegistrar) {
@@ -74,8 +71,8 @@ public class SwiftFlutterPlugin: NSObject, FlutterPlugin {
         headlessInAppWebViewManager = nil
         chromeSafariBrowserManager?.dispose()
         chromeSafariBrowserManager = nil
-        inAppWebViewManager?.dispose()
-        inAppWebViewManager = nil
+        inAppWebViewStatic?.dispose()
+        inAppWebViewStatic = nil
         credentialDatabase?.dispose()
         credentialDatabase = nil
         if #available(iOS 11.0, *) {
@@ -86,9 +83,5 @@ public class SwiftFlutterPlugin: NSObject, FlutterPlugin {
             (myWebStorageManager as! MyWebStorageManager?)?.dispose()
             myWebStorageManager = nil
         }
-        webAuthenticationSessionManager?.dispose()
-        webAuthenticationSessionManager = nil
-        printJobManager?.dispose()
-        printJobManager = nil
     }
 }

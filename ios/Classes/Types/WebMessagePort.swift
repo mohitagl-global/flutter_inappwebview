@@ -7,19 +7,15 @@
 
 import Foundation
 
-public class WebMessagePort: NSObject {
+public class WebMessagePort : NSObject {
     var name: String
-    var index: Int64
-    var webMessageChannelId: String
     var webMessageChannel: WebMessageChannel?
     var isClosed = false
     var isTransferred = false
     var isStarted = false
     
-    public init(name: String, index: Int64, webMessageChannelId: String, webMessageChannel: WebMessageChannel?) {
+    public init(name: String, webMessageChannel: WebMessageChannel) {
         self.name = name
-        self.index = index
-        self.webMessageChannelId = webMessageChannelId
         super.init()
         self.webMessageChannel = webMessageChannel
     }
@@ -39,10 +35,7 @@ public class WebMessagePort: NSObject {
                         window.webkit.messageHandlers["onWebMessagePortMessageReceived"].postMessage({
                             "webMessageChannelId": "\(webMessageChannel.id)",
                             "index": \(String(index)),
-                            "message": {
-                                "data": window.ArrayBuffer != null && event.data instanceof ArrayBuffer ? Array.from(new Uint8Array(event.data)) : (event.data != null ? event.data.toString() : null),
-                                "type": window.ArrayBuffer != null && event.data instanceof ArrayBuffer ? 1 : 0
-                            }
+                            "message": event.data
                         });
                     }
                 }
@@ -78,12 +71,12 @@ public class WebMessagePort: NSObject {
                 }
                 portsString = "[" + portArrayString.joined(separator: ", ") + "]"
             }
-            
+            let data = message.data?.replacingOccurrences(of: "\'", with: "\\'") ?? "null"
             let source = """
             (function() {
                 var webMessageChannel = \(WEB_MESSAGE_CHANNELS_VARIABLE_NAME)["\(webMessageChannel.id)"];
                 if (webMessageChannel != null) {
-                    webMessageChannel.\(self.name).postMessage(\(message.jsData), \(portsString));
+                    webMessageChannel.\(self.name).postMessage('\(data)', \(portsString));
                 }
             })();
             """
@@ -118,30 +111,13 @@ public class WebMessagePort: NSObject {
         }
     }
     
-    public static func fromMap(map: [String: Any?]) -> WebMessagePort {
-        let index = map["index"] as! Int64
-        return WebMessagePort(
-            name: "port\(String(index + 1))",
-            index: index,
-            webMessageChannelId: map["webMessageChannelId"] as! String,
-            webMessageChannel: nil)
-    }
-    
-    public func toMap () -> [String: Any?] {
-        return [
-            "name": name,
-            "index": index,
-            "webMessageChannelId": webMessageChannelId
-        ]
-    }
-    
     public func dispose() {
         isClosed = true
         webMessageChannel = nil
     }
     
     deinit {
-        debugPrint("WebMessagePort - dealloc")
+        print("WebMessagePort - dealloc")
         dispose()
     }
 }

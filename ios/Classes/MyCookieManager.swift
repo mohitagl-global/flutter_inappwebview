@@ -9,18 +9,26 @@ import Foundation
 import WebKit
 
 @available(iOS 11.0, *)
-public class MyCookieManager: ChannelDelegate {
-    static let METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_inappwebview_cookiemanager"
-    static let httpCookieStore = WKWebsiteDataStore.default().httpCookieStore
+class MyCookieManager: NSObject, FlutterPlugin {
 
-    private var plugin: SwiftFlutterPlugin?
+    static var registrar: FlutterPluginRegistrar?
+    static var channel: FlutterMethodChannel?
+    static var httpCookieStore: WKHTTPCookieStore?
     
-    init(plugin: SwiftFlutterPlugin) {
-        super.init(channel: FlutterMethodChannel(name: MyCookieManager.METHOD_CHANNEL_NAME, binaryMessenger: plugin.registrar!.messenger()))
-        self.plugin = plugin
+    static func register(with registrar: FlutterPluginRegistrar) {
+        
     }
     
-    public override func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    init(registrar: FlutterPluginRegistrar) {
+        super.init()
+        MyCookieManager.registrar = registrar
+        MyCookieManager.httpCookieStore = WKWebsiteDataStore.default().httpCookieStore
+        
+        MyCookieManager.channel = FlutterMethodChannel(name: "com.pichillilorenzo/flutter_inappwebview_cookiemanager", binaryMessenger: registrar.messenger())
+        registrar.addMethodCallDelegate(self, channel: MyCookieManager.channel!)
+    }
+    
+    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as? NSDictionary
         switch call.method {
             case "setCookie":
@@ -65,13 +73,13 @@ public class MyCookieManager: ChannelDelegate {
                 let path = arguments!["path"] as! String
                 let domain = arguments!["domain"] as? String
                 MyCookieManager.deleteCookie(url: url, name: name, path: path, domain: domain, result: result)
-                break
+                break;
             case "deleteCookies":
                 let url = arguments!["url"] as! String
                 let path = arguments!["path"] as! String
                 let domain = arguments!["domain"] as? String
                 MyCookieManager.deleteCookies(url: url, path: path, domain: domain, result: result)
-                break
+                break;
             case "deleteAllCookies":
                 MyCookieManager.deleteAllCookies(result: result)
                 break
@@ -92,6 +100,11 @@ public class MyCookieManager: ChannelDelegate {
                           isHttpOnly: Bool?,
                           sameSite: String?,
                           result: @escaping FlutterResult) {
+        guard let httpCookieStore = MyCookieManager.httpCookieStore else {
+            result(false)
+            return
+        }
+        
         var properties: [HTTPCookiePropertyKey: Any] = [:]
         properties[.originURL] = url
         properties[.name] = name
@@ -101,7 +114,7 @@ public class MyCookieManager: ChannelDelegate {
         if domain != nil {
             properties[.domain] = domain
         }
-        
+
         if expiresDate != nil {
             // convert from milliseconds
             properties[.expires] = Date(timeIntervalSince1970: TimeInterval(Double(expiresDate!)/1000))
@@ -132,21 +145,23 @@ public class MyCookieManager: ChannelDelegate {
             }
         }
         
+        let cookie = HTTPCookie(properties: properties)!
         
-        if let cookie = HTTPCookie(properties: properties) {
-            MyCookieManager.httpCookieStore.setCookie(cookie, completionHandler: {() in
-                result(true)
-            })
-        } else {
-            result(false)
-        }
+        httpCookieStore.setCookie(cookie, completionHandler: {() in
+            result(true)
+        })
     }
     
     public static func getCookies(url: String, result: @escaping FlutterResult) {
         var cookieList: [[String: Any?]] = []
         
+        guard let httpCookieStore = MyCookieManager.httpCookieStore else {
+            result(cookieList)
+            return
+        }
+        
         if let urlHost = URL(string: url)?.host {
-            MyCookieManager.httpCookieStore.getAllCookies { (cookies) in
+            httpCookieStore.getAllCookies { (cookies) in
                 for cookie in cookies {
                     if urlHost.hasSuffix(cookie.domain) || ".\(urlHost)".hasSuffix(cookie.domain) {
                         var sameSite: String? = nil
@@ -188,7 +203,12 @@ public class MyCookieManager: ChannelDelegate {
     public static func getAllCookies(result: @escaping FlutterResult) {
         var cookieList: [[String: Any?]] = []
         
-        MyCookieManager.httpCookieStore.getAllCookies { (cookies) in
+        guard let httpCookieStore = MyCookieManager.httpCookieStore else {
+            result(cookieList)
+            return
+        }
+        
+        httpCookieStore.getAllCookies { (cookies) in
             for cookie in cookies {
                 var sameSite: String? = nil
                 if #available(iOS 13.0, *) {
@@ -220,8 +240,13 @@ public class MyCookieManager: ChannelDelegate {
     }
     
     public static func deleteCookie(url: String, name: String, path: String, domain: String?, result: @escaping FlutterResult) {
+        guard let httpCookieStore = MyCookieManager.httpCookieStore else {
+            result(false)
+            return
+        }
+
         var domain = domain
-        MyCookieManager.httpCookieStore.getAllCookies { (cookies) in
+        httpCookieStore.getAllCookies { (cookies) in
             for cookie in cookies {
                 var originURL = url
                 if cookie.properties![.originURL] is String {
@@ -238,7 +263,7 @@ public class MyCookieManager: ChannelDelegate {
                     }
                 }
                 if let domain = domain, cookie.domain == domain, cookie.name == name, cookie.path == path {
-                    MyCookieManager.httpCookieStore.delete(cookie, completionHandler: {
+                    httpCookieStore.delete(cookie, completionHandler: {
                         result(true)
                     })
                     return
@@ -249,9 +274,13 @@ public class MyCookieManager: ChannelDelegate {
     }
     
     public static func deleteCookies(url: String, path: String, domain: String?, result: @escaping FlutterResult) {
+        guard let httpCookieStore = MyCookieManager.httpCookieStore else {
+            result(false)
+            return
+        }
+        
         var domain = domain
-        let dispatchGroup = DispatchGroup()
-        MyCookieManager.httpCookieStore.getAllCookies { (cookies) in
+        httpCookieStore.getAllCookies { (cookies) in
             for cookie in cookies {
                 var originURL = url
                 if cookie.properties![.originURL] is String {
@@ -268,15 +297,10 @@ public class MyCookieManager: ChannelDelegate {
                     }
                 }
                 if let domain = domain, cookie.domain == domain, cookie.path == path {
-                    dispatchGroup.enter()
-                    MyCookieManager.httpCookieStore.delete(cookie) {
-                        dispatchGroup.leave()
-                    }
+                    httpCookieStore.delete(cookie, completionHandler: nil)
                 }
             }
-            dispatchGroup.notify(queue: .main) {
-                result(true)
-            }
+            result(true)
         }
     }
     
@@ -288,12 +312,10 @@ public class MyCookieManager: ChannelDelegate {
         })
     }
     
-    public override func dispose() {
-        super.dispose()
-        plugin = nil
-    }
-    
-    deinit {
-        dispose()
+    public func dispose() {
+        MyCookieManager.channel?.setMethodCallHandler(nil)
+        MyCookieManager.channel = nil
+        MyCookieManager.registrar = nil
+        MyCookieManager.httpCookieStore = nil
     }
 }
