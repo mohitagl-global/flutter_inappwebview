@@ -1,25 +1,258 @@
-import 'dart:collection';
-import 'dart:typed_data';
 import 'dart:ui';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_inappwebview/src/util.dart';
-
-import '../context_menu.dart';
-import '../types.dart';
-import 'webview.dart';
-import 'in_app_webview_controller.dart';
-import 'in_app_webview_options.dart';
+import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
+import '../find_interaction/find_interaction_controller.dart';
 import '../pull_to_refresh/pull_to_refresh_controller.dart';
-import '../pull_to_refresh/pull_to_refresh_options.dart';
-import '../util.dart';
+import 'in_app_webview_controller.dart';
 
-///Class that represents a WebView in headless mode.
-///It can be used to run a WebView in background without attaching an `InAppWebView` to the widget tree.
+/// Object specifying creation parameters for creating a [IOSHeadlessInAppWebView].
 ///
-///Remember to dispose it when you don't need it anymore.
-class HeadlessInAppWebView implements WebView {
-  ///View ID.
+/// When adding additional fields make sure they can be null or have a default
+/// value to avoid breaking changes. See [PlatformHeadlessInAppWebViewCreationParams] for
+/// more information.
+@immutable
+class IOSHeadlessInAppWebViewCreationParams
+    extends PlatformHeadlessInAppWebViewCreationParams {
+  /// Creates a new [IOSHeadlessInAppWebViewCreationParams] instance.
+  IOSHeadlessInAppWebViewCreationParams(
+      {super.controllerFromPlatform,
+      super.initialSize,
+      super.windowId,
+      super.onWebViewCreated,
+      super.onLoadStart,
+      super.onLoadStop,
+      @Deprecated('Use onReceivedError instead') super.onLoadError,
+      super.onReceivedError,
+      @Deprecated("Use onReceivedHttpError instead") super.onLoadHttpError,
+      super.onReceivedHttpError,
+      super.onProgressChanged,
+      super.onConsoleMessage,
+      super.shouldOverrideUrlLoading,
+      super.onLoadResource,
+      super.onScrollChanged,
+      @Deprecated('Use onDownloadStartRequest instead') super.onDownloadStart,
+      super.onDownloadStartRequest,
+      @Deprecated('Use onLoadResourceWithCustomScheme instead')
+      super.onLoadResourceCustomScheme,
+      super.onLoadResourceWithCustomScheme,
+      super.onCreateWindow,
+      super.onCloseWindow,
+      super.onJsAlert,
+      super.onJsConfirm,
+      super.onJsPrompt,
+      super.onReceivedHttpAuthRequest,
+      super.onReceivedServerTrustAuthRequest,
+      super.onReceivedClientCertRequest,
+      @Deprecated('Use FindInteractionController.onFindResultReceived instead')
+      super.onFindResultReceived,
+      super.shouldInterceptAjaxRequest,
+      super.onAjaxReadyStateChange,
+      super.onAjaxProgress,
+      super.shouldInterceptFetchRequest,
+      super.onUpdateVisitedHistory,
+      @Deprecated("Use onPrintRequest instead") super.onPrint,
+      super.onPrintRequest,
+      super.onLongPressHitTestResult,
+      super.onEnterFullscreen,
+      super.onExitFullscreen,
+      super.onPageCommitVisible,
+      super.onTitleChanged,
+      super.onWindowFocus,
+      super.onWindowBlur,
+      super.onOverScrolled,
+      super.onZoomScaleChanged,
+      @Deprecated('Use onSafeBrowsingHit instead')
+      super.androidOnSafeBrowsingHit,
+      super.onSafeBrowsingHit,
+      @Deprecated('Use onPermissionRequest instead')
+      super.androidOnPermissionRequest,
+      super.onPermissionRequest,
+      @Deprecated('Use onGeolocationPermissionsShowPrompt instead')
+      super.androidOnGeolocationPermissionsShowPrompt,
+      super.onGeolocationPermissionsShowPrompt,
+      @Deprecated('Use onGeolocationPermissionsHidePrompt instead')
+      super.androidOnGeolocationPermissionsHidePrompt,
+      super.onGeolocationPermissionsHidePrompt,
+      @Deprecated('Use shouldInterceptRequest instead')
+      super.androidShouldInterceptRequest,
+      super.shouldInterceptRequest,
+      @Deprecated('Use onRenderProcessGone instead')
+      super.androidOnRenderProcessGone,
+      super.onRenderProcessGone,
+      @Deprecated('Use onRenderProcessResponsive instead')
+      super.androidOnRenderProcessResponsive,
+      super.onRenderProcessResponsive,
+      @Deprecated('Use onRenderProcessUnresponsive instead')
+      super.androidOnRenderProcessUnresponsive,
+      super.onRenderProcessUnresponsive,
+      @Deprecated('Use onFormResubmission instead')
+      super.androidOnFormResubmission,
+      super.onFormResubmission,
+      @Deprecated('Use onZoomScaleChanged instead') super.androidOnScaleChanged,
+      @Deprecated('Use onReceivedIcon instead') super.androidOnReceivedIcon,
+      super.onReceivedIcon,
+      @Deprecated('Use onReceivedTouchIconUrl instead')
+      super.androidOnReceivedTouchIconUrl,
+      super.onReceivedTouchIconUrl,
+      @Deprecated('Use onJsBeforeUnload instead') super.androidOnJsBeforeUnload,
+      super.onJsBeforeUnload,
+      @Deprecated('Use onReceivedLoginRequest instead')
+      super.androidOnReceivedLoginRequest,
+      super.onReceivedLoginRequest,
+      super.onPermissionRequestCanceled,
+      super.onRequestFocus,
+      @Deprecated('Use onWebContentProcessDidTerminate instead')
+      super.iosOnWebContentProcessDidTerminate,
+      super.onWebContentProcessDidTerminate,
+      @Deprecated(
+          'Use onDidReceiveServerRedirectForProvisionalNavigation instead')
+      super.iosOnDidReceiveServerRedirectForProvisionalNavigation,
+      super.onDidReceiveServerRedirectForProvisionalNavigation,
+      @Deprecated('Use onNavigationResponse instead')
+      super.iosOnNavigationResponse,
+      super.onNavigationResponse,
+      @Deprecated('Use shouldAllowDeprecatedTLS instead')
+      super.iosShouldAllowDeprecatedTLS,
+      super.shouldAllowDeprecatedTLS,
+      super.onCameraCaptureStateChanged,
+      super.onMicrophoneCaptureStateChanged,
+      super.onContentSizeChanged,
+      super.initialUrlRequest,
+      super.initialFile,
+      super.initialData,
+      @Deprecated('Use initialSettings instead') super.initialOptions,
+      super.initialSettings,
+      super.contextMenu,
+      super.initialUserScripts,
+      this.pullToRefreshController,
+      this.findInteractionController});
+
+  /// Creates a [IOSHeadlessInAppWebViewCreationParams] instance based on [PlatformHeadlessInAppWebViewCreationParams].
+  IOSHeadlessInAppWebViewCreationParams.fromPlatformHeadlessInAppWebViewCreationParams(
+      PlatformHeadlessInAppWebViewCreationParams params)
+      : this(
+            controllerFromPlatform: params.controllerFromPlatform,
+            initialSize: params.initialSize,
+            windowId: params.windowId,
+            onWebViewCreated: params.onWebViewCreated,
+            onLoadStart: params.onLoadStart,
+            onLoadStop: params.onLoadStop,
+            onLoadError: params.onLoadError,
+            onReceivedError: params.onReceivedError,
+            onLoadHttpError: params.onLoadHttpError,
+            onReceivedHttpError: params.onReceivedHttpError,
+            onProgressChanged: params.onProgressChanged,
+            onConsoleMessage: params.onConsoleMessage,
+            shouldOverrideUrlLoading: params.shouldOverrideUrlLoading,
+            onLoadResource: params.onLoadResource,
+            onScrollChanged: params.onScrollChanged,
+            onDownloadStart: params.onDownloadStart,
+            onDownloadStartRequest: params.onDownloadStartRequest,
+            onLoadResourceCustomScheme: params.onLoadResourceCustomScheme,
+            onLoadResourceWithCustomScheme:
+                params.onLoadResourceWithCustomScheme,
+            onCreateWindow: params.onCreateWindow,
+            onCloseWindow: params.onCloseWindow,
+            onJsAlert: params.onJsAlert,
+            onJsConfirm: params.onJsConfirm,
+            onJsPrompt: params.onJsPrompt,
+            onReceivedHttpAuthRequest: params.onReceivedHttpAuthRequest,
+            onReceivedServerTrustAuthRequest:
+                params.onReceivedServerTrustAuthRequest,
+            onReceivedClientCertRequest: params.onReceivedClientCertRequest,
+            onFindResultReceived: params.onFindResultReceived,
+            shouldInterceptAjaxRequest: params.shouldInterceptAjaxRequest,
+            onAjaxReadyStateChange: params.onAjaxReadyStateChange,
+            onAjaxProgress: params.onAjaxProgress,
+            shouldInterceptFetchRequest: params.shouldInterceptFetchRequest,
+            onUpdateVisitedHistory: params.onUpdateVisitedHistory,
+            onPrint: params.onPrint,
+            onPrintRequest: params.onPrintRequest,
+            onLongPressHitTestResult: params.onLongPressHitTestResult,
+            onEnterFullscreen: params.onEnterFullscreen,
+            onExitFullscreen: params.onExitFullscreen,
+            onPageCommitVisible: params.onPageCommitVisible,
+            onTitleChanged: params.onTitleChanged,
+            onWindowFocus: params.onWindowFocus,
+            onWindowBlur: params.onWindowBlur,
+            onOverScrolled: params.onOverScrolled,
+            onZoomScaleChanged: params.onZoomScaleChanged,
+            androidOnSafeBrowsingHit: params.androidOnSafeBrowsingHit,
+            onSafeBrowsingHit: params.onSafeBrowsingHit,
+            androidOnPermissionRequest: params.androidOnPermissionRequest,
+            onPermissionRequest: params.onPermissionRequest,
+            androidOnGeolocationPermissionsShowPrompt:
+                params.androidOnGeolocationPermissionsShowPrompt,
+            onGeolocationPermissionsShowPrompt:
+                params.onGeolocationPermissionsShowPrompt,
+            androidOnGeolocationPermissionsHidePrompt:
+                params.androidOnGeolocationPermissionsHidePrompt,
+            onGeolocationPermissionsHidePrompt:
+                params.onGeolocationPermissionsHidePrompt,
+            androidShouldInterceptRequest: params.androidShouldInterceptRequest,
+            shouldInterceptRequest: params.shouldInterceptRequest,
+            androidOnRenderProcessGone: params.androidOnRenderProcessGone,
+            onRenderProcessGone: params.onRenderProcessGone,
+            androidOnRenderProcessResponsive:
+                params.androidOnRenderProcessResponsive,
+            onRenderProcessResponsive: params.onRenderProcessResponsive,
+            androidOnRenderProcessUnresponsive:
+                params.androidOnRenderProcessUnresponsive,
+            onRenderProcessUnresponsive: params.onRenderProcessUnresponsive,
+            androidOnFormResubmission: params.androidOnFormResubmission,
+            onFormResubmission: params.onFormResubmission,
+            androidOnScaleChanged: params.androidOnScaleChanged,
+            androidOnReceivedIcon: params.androidOnReceivedIcon,
+            onReceivedIcon: params.onReceivedIcon,
+            androidOnReceivedTouchIconUrl: params.androidOnReceivedTouchIconUrl,
+            onReceivedTouchIconUrl: params.onReceivedTouchIconUrl,
+            androidOnJsBeforeUnload: params.androidOnJsBeforeUnload,
+            onJsBeforeUnload: params.onJsBeforeUnload,
+            androidOnReceivedLoginRequest: params.androidOnReceivedLoginRequest,
+            onReceivedLoginRequest: params.onReceivedLoginRequest,
+            onPermissionRequestCanceled: params.onPermissionRequestCanceled,
+            onRequestFocus: params.onRequestFocus,
+            iosOnWebContentProcessDidTerminate:
+                params.iosOnWebContentProcessDidTerminate,
+            onWebContentProcessDidTerminate:
+                params.onWebContentProcessDidTerminate,
+            iosOnDidReceiveServerRedirectForProvisionalNavigation:
+                params.iosOnDidReceiveServerRedirectForProvisionalNavigation,
+            onDidReceiveServerRedirectForProvisionalNavigation:
+                params.onDidReceiveServerRedirectForProvisionalNavigation,
+            iosOnNavigationResponse: params.iosOnNavigationResponse,
+            onNavigationResponse: params.onNavigationResponse,
+            iosShouldAllowDeprecatedTLS: params.iosShouldAllowDeprecatedTLS,
+            shouldAllowDeprecatedTLS: params.shouldAllowDeprecatedTLS,
+            onCameraCaptureStateChanged: params.onCameraCaptureStateChanged,
+            onMicrophoneCaptureStateChanged:
+                params.onMicrophoneCaptureStateChanged,
+            onContentSizeChanged: params.onContentSizeChanged,
+            initialUrlRequest: params.initialUrlRequest,
+            initialFile: params.initialFile,
+            initialData: params.initialData,
+            initialOptions: params.initialOptions,
+            initialSettings: params.initialSettings,
+            contextMenu: params.contextMenu,
+            initialUserScripts: params.initialUserScripts,
+            pullToRefreshController:
+                params.pullToRefreshController as IOSPullToRefreshController?,
+            findInteractionController: params.findInteractionController
+                as IOSFindInteractionController?);
+
+  @override
+  final IOSFindInteractionController? findInteractionController;
+
+  @override
+  final IOSPullToRefreshController? pullToRefreshController;
+}
+
+///{@macro flutter_inappwebview_platform_interface.PlatformHeadlessInAppWebView}
+class IOSHeadlessInAppWebView extends PlatformHeadlessInAppWebView
+    with ChannelController {
+  @override
   late final String id;
 
   bool _started = false;
@@ -27,99 +260,48 @@ class HeadlessInAppWebView implements WebView {
 
   static const MethodChannel _sharedChannel =
       const MethodChannel('com.pichillilorenzo/flutter_headless_inappwebview');
-  late MethodChannel _channel;
 
-  ///WebView Controller that can be used to access the [InAppWebViewController] API.
-  late final InAppWebViewController webViewController;
+  IOSInAppWebViewController? _webViewController;
 
-  ///The window id of a [CreateWindowAction.windowId].
-  final int? windowId;
-
-  ///The WebView initial size in pixels.
-  ///
-  ///Set `-1` to match the corresponding width or height of the current device screen size.
-  ///`Size(-1, -1)` will match both width and height of the current device screen size.
-  ///
-  ///**NOTE for Android**: `Size` width and height values will be converted to `int` values because they cannot have `double` values.
-  final Size initialSize;
-
-  HeadlessInAppWebView(
-      {this.initialSize = const Size(-1, -1),
-      this.windowId,
-      this.initialUrlRequest,
-      this.initialFile,
-      this.initialData,
-      this.initialOptions,
-      this.contextMenu,
-      this.initialUserScripts,
-      this.pullToRefreshController,
-      this.onWebViewCreated,
-      this.onLoadStart,
-      this.onLoadStop,
-      this.onLoadError,
-      this.onLoadHttpError,
-      this.onProgressChanged,
-      this.onConsoleMessage,
-      this.shouldOverrideUrlLoading,
-      this.onLoadResource,
-      this.onScrollChanged,
-      this.onDownloadStart,
-      this.onLoadResourceCustomScheme,
-      this.onCreateWindow,
-      this.onCloseWindow,
-      this.onJsAlert,
-      this.onJsConfirm,
-      this.onJsPrompt,
-      this.onReceivedHttpAuthRequest,
-      this.onReceivedServerTrustAuthRequest,
-      this.onReceivedClientCertRequest,
-      this.onFindResultReceived,
-      this.shouldInterceptAjaxRequest,
-      this.onAjaxReadyStateChange,
-      this.onAjaxProgress,
-      this.shouldInterceptFetchRequest,
-      this.onUpdateVisitedHistory,
-      this.onPrint,
-      this.onLongPressHitTestResult,
-      this.onEnterFullscreen,
-      this.onExitFullscreen,
-      this.onPageCommitVisible,
-      this.onTitleChanged,
-      this.onWindowFocus,
-      this.onWindowBlur,
-      this.onOverScrolled,
-      this.androidOnSafeBrowsingHit,
-      this.androidOnPermissionRequest,
-      this.androidOnGeolocationPermissionsShowPrompt,
-      this.androidOnGeolocationPermissionsHidePrompt,
-      this.androidShouldInterceptRequest,
-      this.androidOnRenderProcessGone,
-      this.androidOnRenderProcessResponsive,
-      this.androidOnRenderProcessUnresponsive,
-      this.androidOnFormResubmission,
-      @Deprecated('Use `onZoomScaleChanged` instead')
-          this.androidOnScaleChanged,
-      this.androidOnReceivedIcon,
-      this.androidOnReceivedTouchIconUrl,
-      this.androidOnJsBeforeUnload,
-      this.androidOnReceivedLoginRequest,
-      this.iosOnWebContentProcessDidTerminate,
-      this.iosOnDidReceiveServerRedirectForProvisionalNavigation,
-      this.iosOnNavigationResponse,
-      this.iosShouldAllowDeprecatedTLS}) {
+  /// Constructs a [IOSHeadlessInAppWebView].
+  IOSHeadlessInAppWebView(PlatformHeadlessInAppWebViewCreationParams params)
+      : super.implementation(
+          params is IOSHeadlessInAppWebViewCreationParams
+              ? params
+              : IOSHeadlessInAppWebViewCreationParams
+                  .fromPlatformHeadlessInAppWebViewCreationParams(params),
+        ) {
     id = IdGenerator.generate();
-    webViewController = new InAppWebViewController(id, this);
-    this._channel =
-        MethodChannel('com.pichillilorenzo/flutter_headless_inappwebview_$id');
-    this._channel.setMethodCallHandler(handleMethod);
   }
 
-  Future<dynamic> handleMethod(MethodCall call) async {
+  @override
+  IOSInAppWebViewController? get webViewController => _webViewController;
+
+  dynamic _controllerFromPlatform;
+
+  IOSHeadlessInAppWebViewCreationParams get _iosParams =>
+      params as IOSHeadlessInAppWebViewCreationParams;
+
+  _init() {
+    _webViewController = IOSInAppWebViewController(
+      IOSInAppWebViewControllerCreationParams(id: id, webviewParams: params),
+    );
+    _controllerFromPlatform =
+        params.controllerFromPlatform?.call(_webViewController!) ??
+            _webViewController!;
+    _iosParams.pullToRefreshController?.init(id);
+    _iosParams.findInteractionController?.init(id);
+    channel =
+        MethodChannel('com.pichillilorenzo/flutter_headless_inappwebview_$id');
+    handler = _handleMethod;
+    initMethodCallHandler();
+  }
+
+  Future<dynamic> _handleMethod(MethodCall call) async {
     switch (call.method) {
       case "onWebViewCreated":
-        pullToRefreshController?.initMethodChannel(id);
-        if (onWebViewCreated != null) {
-          onWebViewCreated!(webViewController);
+        if (params.onWebViewCreated != null && _webViewController != null) {
+          params.onWebViewCreated!(_controllerFromPlatform);
         }
         break;
       default:
@@ -128,60 +310,87 @@ class HeadlessInAppWebView implements WebView {
     return null;
   }
 
-  ///Runs the headless WebView.
   Future<void> run() async {
     if (_started) {
       return;
     }
     _started = true;
+    _init();
+
+    final initialSettings = params.initialSettings ?? InAppWebViewSettings();
+    _inferInitialSettings(initialSettings);
+
+    Map<String, dynamic> settingsMap =
+        (params.initialSettings != null ? initialSettings.toMap() : null) ??
+            params.initialOptions?.toMap() ??
+            initialSettings.toMap();
+
+    Map<String, dynamic> pullToRefreshSettings =
+        _iosParams.pullToRefreshController?.params.settings.toMap() ??
+            _iosParams.pullToRefreshController?.params.options.toMap() ??
+            PullToRefreshSettings(enabled: false).toMap();
+
     Map<String, dynamic> args = <String, dynamic>{};
     args.putIfAbsent('id', () => id);
     args.putIfAbsent(
         'params',
         () => <String, dynamic>{
-              'initialUrlRequest': (this.initialUrlRequest ??
-                      URLRequest(url: Uri.parse("about:blank")))
-                  .toMap(),
-              'initialFile': this.initialFile,
-              'initialData': this.initialData?.toMap(),
-              'initialOptions': this.initialOptions?.toMap() ?? {},
-              'contextMenu': this.contextMenu?.toMap() ?? {},
-              'windowId': this.windowId,
+              'initialUrlRequest': params.initialUrlRequest?.toMap(),
+              'initialFile': params.initialFile,
+              'initialData': params.initialData?.toMap(),
+              'initialSettings': settingsMap,
+              'contextMenu': params.contextMenu?.toMap() ?? {},
+              'windowId': params.windowId,
               'initialUserScripts':
-                  this.initialUserScripts?.map((e) => e.toMap()).toList() ?? [],
-              'pullToRefreshOptions':
-                  this.pullToRefreshController?.options.toMap() ??
-                      PullToRefreshOptions(enabled: false).toMap(),
-              'initialSize': this.initialSize.toMap()
+                  params.initialUserScripts?.map((e) => e.toMap()).toList() ??
+                      [],
+              'pullToRefreshSettings': pullToRefreshSettings,
+              'initialSize': params.initialSize.toMap()
             });
     await _sharedChannel.invokeMethod('run', args);
     _running = true;
   }
 
-  ///Disposes the headless WebView.
-  Future<void> dispose() async {
-    if (!_running) {
-      return;
+  void _inferInitialSettings(InAppWebViewSettings settings) {
+    if (params.shouldOverrideUrlLoading != null &&
+        settings.useShouldOverrideUrlLoading == null) {
+      settings.useShouldOverrideUrlLoading = true;
     }
-    Map<String, dynamic> args = <String, dynamic>{};
-    await _channel.invokeMethod('dispose', args);
-    _started = false;
-    _running = false;
+    if (params.onLoadResource != null && settings.useOnLoadResource == null) {
+      settings.useOnLoadResource = true;
+    }
+    if (params.onDownloadStartRequest != null &&
+        settings.useOnDownloadStart == null) {
+      settings.useOnDownloadStart = true;
+    }
+    if (params.shouldInterceptAjaxRequest != null &&
+        settings.useShouldInterceptAjaxRequest == null) {
+      settings.useShouldInterceptAjaxRequest = true;
+    }
+    if (params.shouldInterceptFetchRequest != null &&
+        settings.useShouldInterceptFetchRequest == null) {
+      settings.useShouldInterceptFetchRequest = true;
+    }
+    if (params.shouldInterceptRequest != null &&
+        settings.useShouldInterceptRequest == null) {
+      settings.useShouldInterceptRequest = true;
+    }
+    if (params.onRenderProcessGone != null &&
+        settings.useOnRenderProcessGone == null) {
+      settings.useOnRenderProcessGone = true;
+    }
+    if (params.onNavigationResponse != null &&
+        settings.useOnNavigationResponse == null) {
+      settings.useOnNavigationResponse = true;
+    }
   }
 
-  ///Indicates if the headless WebView is running or not.
+  @override
   bool isRunning() {
     return _running;
   }
 
-  ///Set the size of the WebView in pixels.
-  ///
-  ///Set `-1` to match the corresponding width or height of the current device screen size.
-  ///`Size(-1, -1)` will match both width and height of the current device screen size.
-  ///
-  ///Note that if the [HeadlessInAppWebView] is not running, this method won't have effect.
-  ///
-  ///**NOTE for Android**: `Size` width and height values will be converted to `int` values because they cannot have `double` values.
+  @override
   Future<void> setSize(Size size) async {
     if (!_running) {
       return;
@@ -189,12 +398,10 @@ class HeadlessInAppWebView implements WebView {
 
     Map<String, dynamic> args = <String, dynamic>{};
     args.putIfAbsent('size', () => size.toMap());
-    await _channel.invokeMethod('setSize', args);
+    await channel?.invokeMethod('setSize', args);
   }
 
-  ///Gets the current size in pixels of the WebView.
-  ///
-  ///Note that if the [HeadlessInAppWebView] is not running, this method will return `null`.
+  @override
   Future<Size?> getSize() async {
     if (!_running) {
       return null;
@@ -202,255 +409,31 @@ class HeadlessInAppWebView implements WebView {
 
     Map<String, dynamic> args = <String, dynamic>{};
     Map<String, dynamic> sizeMap =
-        (await _channel.invokeMethod('getSize', args))?.cast<String, dynamic>();
+        (await channel?.invokeMethod('getSize', args))?.cast<String, dynamic>();
     return MapSize.fromMap(sizeMap);
   }
 
   @override
-  final InAppWebViewInitialData? initialData;
+  Future<void> dispose() async {
+    if (!_running) {
+      return;
+    }
+    Map<String, dynamic> args = <String, dynamic>{};
+    await channel?.invokeMethod('dispose', args);
+    disposeChannel();
+    _started = false;
+    _running = false;
+    _webViewController?.dispose();
+    _webViewController = null;
+    _controllerFromPlatform = null;
+    _iosParams.pullToRefreshController?.dispose();
+    _iosParams.findInteractionController?.dispose();
+  }
+}
 
-  @override
-  final String? initialFile;
-
-  @override
-  final InAppWebViewGroupOptions? initialOptions;
-
-  @override
-  final ContextMenu? contextMenu;
-
-  @override
-  final URLRequest? initialUrlRequest;
-
-  @override
-  final UnmodifiableListView<UserScript>? initialUserScripts;
-
-  @override
-  final PullToRefreshController? pullToRefreshController;
-
-  @override
-  void Function(InAppWebViewController controller)?
-      androidOnGeolocationPermissionsHidePrompt;
-
-  @override
-  Future<GeolocationPermissionShowPromptResponse?> Function(
-          InAppWebViewController controller, String origin)?
-      androidOnGeolocationPermissionsShowPrompt;
-
-  @override
-  Future<PermissionRequestResponse?> Function(InAppWebViewController controller,
-      String origin, List<String> resources)? androidOnPermissionRequest;
-
-  @override
-  Future<SafeBrowsingResponse?> Function(InAppWebViewController controller,
-      Uri url, SafeBrowsingThreat? threatType)? androidOnSafeBrowsingHit;
-
-  @override
-  void Function(InAppWebViewController controller, Uri? url)?
-      onPageCommitVisible;
-
-  @override
-  void Function(InAppWebViewController controller, String? title)?
-      onTitleChanged;
-
-  @override
-  void Function(InAppWebViewController controller)?
-      iosOnDidReceiveServerRedirectForProvisionalNavigation;
-
-  @override
-  void Function(InAppWebViewController controller)?
-      iosOnWebContentProcessDidTerminate;
-
-  @override
-  Future<IOSNavigationResponseAction?> Function(
-      InAppWebViewController controller,
-      IOSWKNavigationResponse navigationResponse)? iosOnNavigationResponse;
-
-  @override
-  Future<IOSShouldAllowDeprecatedTLSAction?> Function(
-      InAppWebViewController controller,
-      URLAuthenticationChallenge challenge)? iosShouldAllowDeprecatedTLS;
-
-  @override
-  Future<AjaxRequestAction> Function(
-          InAppWebViewController controller, AjaxRequest ajaxRequest)?
-      onAjaxProgress;
-
-  @override
-  Future<AjaxRequestAction?> Function(
-          InAppWebViewController controller, AjaxRequest ajaxRequest)?
-      onAjaxReadyStateChange;
-
-  @override
-  void Function(
-          InAppWebViewController controller, ConsoleMessage consoleMessage)?
-      onConsoleMessage;
-
-  @override
-  Future<bool?> Function(InAppWebViewController controller,
-      CreateWindowAction createWindowAction)? onCreateWindow;
-
-  @override
-  void Function(InAppWebViewController controller)? onCloseWindow;
-
-  @override
-  void Function(InAppWebViewController controller)? onWindowFocus;
-
-  @override
-  void Function(InAppWebViewController controller)? onWindowBlur;
-
-  @override
-  void Function(InAppWebViewController controller, Uri url)? onDownloadStart;
-
-  @override
-  void Function(InAppWebViewController controller, int activeMatchOrdinal,
-      int numberOfMatches, bool isDoneCounting)? onFindResultReceived;
-
-  @override
-  Future<JsAlertResponse?> Function(
-          InAppWebViewController controller, JsAlertRequest jsAlertRequest)?
-      onJsAlert;
-
-  @override
-  Future<JsConfirmResponse?> Function(
-          InAppWebViewController controller, JsConfirmRequest jsConfirmRequest)?
-      onJsConfirm;
-
-  @override
-  Future<JsPromptResponse?> Function(
-          InAppWebViewController controller, JsPromptRequest jsPromptRequest)?
-      onJsPrompt;
-
-  @override
-  void Function(InAppWebViewController controller, Uri? url, int code,
-      String message)? onLoadError;
-
-  @override
-  void Function(InAppWebViewController controller, Uri? url, int statusCode,
-      String description)? onLoadHttpError;
-
-  @override
-  void Function(InAppWebViewController controller, LoadedResource resource)?
-      onLoadResource;
-
-  @override
-  Future<CustomSchemeResponse?> Function(
-      InAppWebViewController controller, Uri url)? onLoadResourceCustomScheme;
-
-  @override
-  void Function(InAppWebViewController controller, Uri? url)? onLoadStart;
-
-  @override
-  void Function(InAppWebViewController controller, Uri? url)? onLoadStop;
-
-  @override
-  void Function(InAppWebViewController controller,
-      InAppWebViewHitTestResult hitTestResult)? onLongPressHitTestResult;
-
-  @override
-  void Function(InAppWebViewController controller, Uri? url)? onPrint;
-
-  @override
-  void Function(InAppWebViewController controller, int progress)?
-      onProgressChanged;
-
-  @override
-  Future<ClientCertResponse?> Function(InAppWebViewController controller,
-      URLAuthenticationChallenge challenge)? onReceivedClientCertRequest;
-
-  @override
-  Future<HttpAuthResponse?> Function(InAppWebViewController controller,
-      URLAuthenticationChallenge challenge)? onReceivedHttpAuthRequest;
-
-  @override
-  Future<ServerTrustAuthResponse?> Function(InAppWebViewController controller,
-      URLAuthenticationChallenge challenge)? onReceivedServerTrustAuthRequest;
-
-  @override
-  void Function(InAppWebViewController controller, int x, int y)?
-      onScrollChanged;
-
-  @override
-  void Function(
-          InAppWebViewController controller, Uri? url, bool? androidIsReload)?
-      onUpdateVisitedHistory;
-
-  @override
-  void Function(InAppWebViewController controller)? onWebViewCreated;
-
-  @override
-  Future<AjaxRequest?> Function(
-          InAppWebViewController controller, AjaxRequest ajaxRequest)?
-      shouldInterceptAjaxRequest;
-
-  @override
-  Future<FetchRequest?> Function(
-          InAppWebViewController controller, FetchRequest fetchRequest)?
-      shouldInterceptFetchRequest;
-
-  @override
-  Future<NavigationActionPolicy?> Function(
-          InAppWebViewController controller, NavigationAction navigationAction)?
-      shouldOverrideUrlLoading;
-
-  @override
-  void Function(InAppWebViewController controller)? onEnterFullscreen;
-
-  @override
-  void Function(InAppWebViewController controller)? onExitFullscreen;
-
-  @override
-  void Function(InAppWebViewController controller, int x, int y, bool clampedX,
-      bool clampedY)? onOverScrolled;
-
-  @override
-  void Function(
-          InAppWebViewController controller, double oldScale, double newScale)?
-      onZoomScaleChanged;
-
-  @override
-  Future<WebResourceResponse?> Function(
-          InAppWebViewController controller, WebResourceRequest request)?
-      androidShouldInterceptRequest;
-
-  @override
-  Future<WebViewRenderProcessAction?> Function(
-          InAppWebViewController controller, Uri? url)?
-      androidOnRenderProcessUnresponsive;
-
-  @override
-  Future<WebViewRenderProcessAction?> Function(
-          InAppWebViewController controller, Uri? url)?
-      androidOnRenderProcessResponsive;
-
-  @override
-  void Function(
-          InAppWebViewController controller, RenderProcessGoneDetail detail)?
-      androidOnRenderProcessGone;
-
-  @override
-  Future<FormResubmissionAction?> Function(
-      InAppWebViewController controller, Uri? url)? androidOnFormResubmission;
-
-  ///Use [onZoomScaleChanged] instead.
-  @Deprecated('Use `onZoomScaleChanged` instead')
-  @override
-  void Function(
-          InAppWebViewController controller, double oldScale, double newScale)?
-      androidOnScaleChanged;
-
-  @override
-  void Function(InAppWebViewController controller, Uint8List icon)?
-      androidOnReceivedIcon;
-
-  @override
-  void Function(InAppWebViewController controller, Uri url, bool precomposed)?
-      androidOnReceivedTouchIconUrl;
-
-  @override
-  Future<JsBeforeUnloadResponse?> Function(InAppWebViewController controller,
-      JsBeforeUnloadRequest jsBeforeUnloadRequest)? androidOnJsBeforeUnload;
-
-  @override
-  void Function(InAppWebViewController controller, LoginRequest loginRequest)?
-      androidOnReceivedLoginRequest;
+extension InternalHeadlessInAppWebView on IOSHeadlessInAppWebView {
+  Future<void> internalDispose() async {
+    _started = false;
+    _running = false;
+  }
 }

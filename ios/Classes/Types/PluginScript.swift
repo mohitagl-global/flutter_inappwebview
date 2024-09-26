@@ -8,7 +8,7 @@
 import Foundation
 import WebKit
 
-public class PluginScript : UserScript {
+public class PluginScript: UserScript {
     var requiredInAllContentWorlds = false
     var messageHandlerNames: [String] = []
     
@@ -24,13 +24,13 @@ public class PluginScript : UserScript {
     
     @available(iOS 14.0, *)
     public override init(source: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool, in contentWorld: WKContentWorld) {
-        super.init(groupName: <#String?#>, source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld)
+        super.init(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld)
         self.contentWorld = contentWorld
     }
     
     @available(iOS 14.0, *)
     public init(source: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool, in contentWorld: WKContentWorld, requiredInAllContentWorlds: Bool = false, messageHandlerNames: [String] = []) {
-        super.init(groupName: <#String?#>, source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld)
+        super.init(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld)
         self.requiredInAllContentWorlds = requiredInAllContentWorlds
         self.messageHandlerNames = messageHandlerNames
     }
@@ -86,5 +86,24 @@ public class PluginScript : UserScript {
             requiredInAllContentWorlds: requiredInAllContentWorlds ?? self.requiredInAllContentWorlds,
             messageHandlerNames: messageHandlerNames ?? self.messageHandlerNames
         )
+    }
+
+    static func == (lhs: PluginScript, rhs: PluginScript) -> Bool {
+        if #available(iOS 14.0, *) {
+            return lhs.groupName == rhs.groupName &&
+                lhs.source == rhs.source &&
+                lhs.injectionTime == rhs.injectionTime &&
+                lhs.isForMainFrameOnly == rhs.isForMainFrameOnly &&
+                lhs.contentWorld == rhs.contentWorld &&
+                lhs.requiredInAllContentWorlds == rhs.requiredInAllContentWorlds &&
+                lhs.messageHandlerNames == rhs.messageHandlerNames
+        } else {
+            return lhs.groupName == rhs.groupName &&
+                lhs.source == rhs.source &&
+                lhs.injectionTime == rhs.injectionTime &&
+                lhs.isForMainFrameOnly == rhs.isForMainFrameOnly &&
+                lhs.requiredInAllContentWorlds == rhs.requiredInAllContentWorlds &&
+                lhs.messageHandlerNames == rhs.messageHandlerNames
+        }
     }
 }

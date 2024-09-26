@@ -10,6 +10,8 @@ import Foundation
 let INTERCEPT_AJAX_REQUEST_JS_PLUGIN_SCRIPT_GROUP_NAME = "IN_APP_WEBVIEW_INTERCEPT_AJAX_REQUEST_JS_PLUGIN_SCRIPT"
 let FLAG_VARIABLE_FOR_SHOULD_INTERCEPT_AJAX_REQUEST_JS_SOURCE = "window.\(JAVASCRIPT_BRIDGE_NAME)._useShouldInterceptAjaxRequest"
 
+let FLAG_VARIABLE_FOR_INTERCEPT_ONLY_ASYNC_AJAX_REQUESTS_JS_SOURCE = "window.\(JAVASCRIPT_BRIDGE_NAME)._interceptOnlyAsyncAjaxRequests";
+
 let INTERCEPT_AJAX_REQUEST_JS_PLUGIN_SCRIPT = PluginScript(
     groupName: INTERCEPT_AJAX_REQUEST_JS_PLUGIN_SCRIPT_GROUP_NAME,
     source: INTERCEPT_AJAX_REQUEST_JS_SOURCE,
@@ -17,6 +19,16 @@ let INTERCEPT_AJAX_REQUEST_JS_PLUGIN_SCRIPT = PluginScript(
     forMainFrameOnly: false,
     requiredInAllContentWorlds: true,
     messageHandlerNames: [])
+
+func createInterceptOnlyAsyncAjaxRequestsPluginScript(onlyAsync: Bool) -> PluginScript {
+    return PluginScript(groupName: INTERCEPT_AJAX_REQUEST_JS_PLUGIN_SCRIPT_GROUP_NAME,
+        source: "\(FLAG_VARIABLE_FOR_INTERCEPT_ONLY_ASYNC_AJAX_REQUESTS_JS_SOURCE) = \(onlyAsync);",
+        injectionTime: .atDocumentStart,
+        forMainFrameOnly: false,
+        requiredInAllContentWorlds: true,
+        messageHandlerNames: []
+    );
+}
 
 let INTERCEPT_AJAX_REQUEST_JS_SOURCE = """
 \(FLAG_VARIABLE_FOR_SHOULD_INTERCEPT_AJAX_REQUEST_JS_SOURCE) = true;
@@ -122,7 +134,8 @@ let INTERCEPT_AJAX_REQUEST_JS_SOURCE = """
   };
   ajax.prototype.send = function(data) {
     var self = this;
-    if (\(FLAG_VARIABLE_FOR_SHOULD_INTERCEPT_AJAX_REQUEST_JS_SOURCE) == null || \(FLAG_VARIABLE_FOR_SHOULD_INTERCEPT_AJAX_REQUEST_JS_SOURCE) == true) {
+    var canBeIntercepted = self._flutter_inappwebview_isAsync || \(FLAG_VARIABLE_FOR_INTERCEPT_ONLY_ASYNC_AJAX_REQUESTS_JS_SOURCE) === false;
+    if (canBeIntercepted && (\(FLAG_VARIABLE_FOR_SHOULD_INTERCEPT_AJAX_REQUEST_JS_SOURCE) == null || \(FLAG_VARIABLE_FOR_SHOULD_INTERCEPT_AJAX_REQUEST_JS_SOURCE) == true)) {
       if (!this._flutter_inappwebview_already_onreadystatechange_wrapped) {
         this._flutter_inappwebview_already_onreadystatechange_wrapped = true;
         var onreadystatechange = this.onreadystatechange;
@@ -197,7 +210,7 @@ let INTERCEPT_AJAX_REQUEST_JS_SOURCE = """
           };
           window.\(JAVASCRIPT_BRIDGE_NAME).callHandler('shouldInterceptAjaxRequest', ajaxRequest).then(function(result) {
             if (result != null) {
-              switch (result.action) {
+              switch (result) {
                 case 0:
                   self.abort();
                   return;
@@ -219,7 +232,7 @@ let INTERCEPT_AJAX_REQUEST_JS_SOURCE = """
                 data = new Uint8Array(result.data);
               }
               self.withCredentials = result.withCredentials;
-              if (result.responseType != null) {
+              if (result.responseType != null && self._flutter_inappwebview_isAsync) {
                 self.responseType = result.responseType;
               };
               if (result.headers != null) {
@@ -234,10 +247,13 @@ let INTERCEPT_AJAX_REQUEST_JS_SOURCE = """
                   setRequestHeader.call(self, header, value);
                 };
               }
-              if ((self._flutter_inappwebview_method != result.method && result.method != null) || (self._flutter_inappwebview_url != result.url && result.url != null)) {
+              if ((self._flutter_inappwebview_method != result.method && result.method != null) ||
+                  (self._flutter_inappwebview_url != result.url && result.url != null) ||
+                  (self._flutter_inappwebview_isAsync != result.isAsync && result.isAsync != null) ||
+                  (self._flutter_inappwebview_user != result.user && result.user != null) ||
+                  (self._flutter_inappwebview_password != result.password && result.password != null)) {
                 self.abort();
                 self.open(result.method, result.url, result.isAsync, result.user, result.password);
-                return;
               }
             }
             send.call(self, data);

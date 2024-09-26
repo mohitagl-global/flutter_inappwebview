@@ -11,28 +11,21 @@ import WebKit
 import Foundation
 import AVFoundation
 
-let WEBVIEW_STORYBOARD = "WebView"
-let WEBVIEW_STORYBOARD_CONTROLLER_ID = "viewController"
-let NAV_STORYBOARD_CONTROLLER_ID = "navController"
-
-public class InAppBrowserManager: NSObject, FlutterPlugin {
-    static var registrar: FlutterPluginRegistrar?
-    static var channel: FlutterMethodChannel?
+public class InAppBrowserManager: ChannelDelegate {
+    static let METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_inappbrowser"
+    static let WEBVIEW_STORYBOARD = "WebView"
+    static let WEBVIEW_STORYBOARD_CONTROLLER_ID = "viewController"
+    static let NAV_STORYBOARD_CONTROLLER_ID = "navController"
+    var plugin: SwiftFlutterPlugin?
     
     private var previousStatusBarStyle = -1
     
-    public static func register(with registrar: FlutterPluginRegistrar) {
-        
+    init(plugin: SwiftFlutterPlugin) {
+        super.init(channel: FlutterMethodChannel(name: InAppBrowserManager.METHOD_CHANNEL_NAME, binaryMessenger: plugin.registrar!.messenger()))
+        self.plugin = plugin
     }
     
-    init(registrar: FlutterPluginRegistrar) {
-        super.init()
-        InAppBrowserManager.registrar = registrar
-        InAppBrowserManager.channel = FlutterMethodChannel(name: "com.pichillilorenzo/flutter_inappbrowser", binaryMessenger: registrar.messenger())
-        registrar.addMethodCallDelegate(self, channel: InAppBrowserManager.channel!)
-    }
-    
-    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    public override func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as? NSDictionary
 
         switch call.method {
@@ -50,20 +43,22 @@ public class InAppBrowserManager: NSObject, FlutterPlugin {
         }
     }
     
-    public func prepareInAppBrowserWebViewController(options: [String: Any?]) -> InAppBrowserWebViewController {
+    public func prepareInAppBrowserWebViewController(settings: [String: Any?]) -> InAppBrowserWebViewController {
         if previousStatusBarStyle == -1 {
             previousStatusBarStyle = UIApplication.shared.statusBarStyle.rawValue
         }
         
-        let browserOptions = InAppBrowserOptions()
-        let _ = browserOptions.parse(options: options)
+        let browserSettings = InAppBrowserSettings()
+        let _ = browserSettings.parse(settings: settings)
         
-        let webViewOptions = InAppWebViewOptions()
-        let _ = webViewOptions.parse(options: options)
+        let webViewSettings = InAppWebViewSettings()
+        let _ = webViewSettings.parse(settings: settings)
         
         let webViewController = InAppBrowserWebViewController()
-        webViewController.browserOptions = browserOptions
-        webViewController.webViewOptions = webViewOptions
+        webViewController.plugin = plugin
+        webViewController.browserSettings = browserSettings
+        webViewController.isHidden = browserSettings.hidden
+        webViewController.webViewSettings = webViewSettings
         webViewController.previousStatusBarStyle = previousStatusBarStyle
         return webViewController
     }
@@ -76,13 +71,14 @@ public class InAppBrowserManager: NSObject, FlutterPlugin {
         let mimeType = arguments["mimeType"] as? String
         let encoding = arguments["encoding"] as? String
         let baseUrl = arguments["baseUrl"] as? String
-        let options = arguments["options"] as! [String: Any?]
+        let settings = arguments["settings"] as! [String: Any?]
         let contextMenu = arguments["contextMenu"] as! [String: Any]
         let windowId = arguments["windowId"] as? Int64
         let initialUserScripts = arguments["initialUserScripts"] as? [[String: Any]]
-        let pullToRefreshInitialOptions = arguments["pullToRefreshOptions"] as! [String: Any?]
+        let pullToRefreshInitialSettings = arguments["pullToRefreshSettings"] as! [String: Any?]
+        let menuItems = arguments["menuItems"] as! [[String: Any?]]
         
-        let webViewController = prepareInAppBrowserWebViewController(options: options)
+        let webViewController = prepareInAppBrowserWebViewController(settings: settings)
         
         webViewController.id = id
         webViewController.initialUrlRequest = urlRequest != nil ? URLRequest.init(fromPluginMap: urlRequest!) : nil
@@ -94,35 +90,40 @@ public class InAppBrowserManager: NSObject, FlutterPlugin {
         webViewController.contextMenu = contextMenu
         webViewController.windowId = windowId
         webViewController.initialUserScripts = initialUserScripts ?? []
-        webViewController.pullToRefreshInitialOptions = pullToRefreshInitialOptions
+        webViewController.pullToRefreshInitialSettings = pullToRefreshInitialSettings
+        for menuItem in menuItems {
+            webViewController.menuItems.append(InAppBrowserMenuItem.fromMap(map: menuItem)!)
+        }
         
         presentViewController(webViewController: webViewController)
     }
     
     public func presentViewController(webViewController: InAppBrowserWebViewController) {
-        let storyboard = UIStoryboard(name: WEBVIEW_STORYBOARD, bundle: Bundle(for: InAppWebViewFlutterPlugin.self))
-        let navController = storyboard.instantiateViewController(withIdentifier: NAV_STORYBOARD_CONTROLLER_ID) as! InAppBrowserNavigationController
+        let storyboard = UIStoryboard(name: InAppBrowserManager.WEBVIEW_STORYBOARD, bundle: Bundle(for: InAppWebViewFlutterPlugin.self))
+        let navController = storyboard.instantiateViewController(withIdentifier: InAppBrowserManager.NAV_STORYBOARD_CONTROLLER_ID) as! InAppBrowserNavigationController
         webViewController.edgesForExtendedLayout = []
         navController.pushViewController(webViewController, animated: false)
         webViewController.prepareNavigationControllerBeforeViewWillAppear()
         
-        let frame: CGRect = UIScreen.main.bounds
-        let tmpWindow = UIWindow(frame: frame)
-        
-        let tmpController = UIViewController()
-        let baseWindowLevel = UIApplication.shared.keyWindow?.windowLevel
-        tmpWindow.rootViewController = tmpController
-        tmpWindow.windowLevel = UIWindow.Level(baseWindowLevel!.rawValue + 1.0)
-        tmpWindow.makeKeyAndVisible()
-        navController.tmpWindow = tmpWindow
-        
         var animated = true
-        if let browserOptions = webViewController.browserOptions, browserOptions.hidden {
-            tmpWindow.isHidden = true
-            UIApplication.shared.delegate?.window??.makeKeyAndVisible()
+        if let browserSettings = webViewController.browserSettings, browserSettings.hidden {
             animated = false
         }
-        tmpWindow.rootViewController!.present(navController, animated: animated, completion: nil)
+        
+        guard let visibleViewController = UIApplication.shared.visibleViewController else {
+            assertionFailure("Failure init the visibleViewController!")
+            return
+        }
+
+        if let popover = navController.popoverPresentationController {
+            let sourceView = visibleViewController.view ?? UIView()
+
+            popover.sourceRect = CGRect(x: sourceView.bounds.midX, y: sourceView.bounds.midY, width: 0, height: 0)
+            popover.permittedArrowDirections = []
+            popover.sourceView = sourceView
+        }
+
+        visibleViewController.present(navController, animated: animated)
     }
     
     public func openWithSystemBrowser(url: String, result: @escaping FlutterResult) {
@@ -133,11 +134,20 @@ public class InAppBrowserManager: NSObject, FlutterPlugin {
         }
         else {
             if #available(iOS 10.0, *) {
-                UIApplication.shared.open(absoluteUrl, options: [:], completionHandler: nil)
+                UIApplication.shared.open(absoluteUrl)
             } else {
                 UIApplication.shared.openURL(absoluteUrl)
             }
         }
         result(true)
+    }
+    
+    public override func dispose() {
+        super.dispose()
+        plugin = nil
+    }
+    
+    deinit {
+        dispose()
     }
 }

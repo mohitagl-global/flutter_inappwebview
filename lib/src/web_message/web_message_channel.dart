@@ -1,48 +1,93 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import '../types.dart';
-import '../in_app_webview/in_app_webview_controller.dart';
+import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
+import 'web_message_port.dart';
 
-///The representation of the [HTML5 message channels](https://html.spec.whatwg.org/multipage/web-messaging.html#message-channels).
-class WebMessageChannel {
-  ///Message Channel ID used internally.
-  final String id;
+/// Object specifying creation parameters for creating a [IOSWebMessageChannel].
+///
+/// When adding additional fields make sure they can be null or have a default
+/// value to avoid breaking changes. See [PlatformWebMessageChannelCreationParams] for
+/// more information.
+@immutable
+class IOSWebMessageChannelCreationParams
+    extends PlatformWebMessageChannelCreationParams {
+  /// Creates a new [IOSWebMessageChannelCreationParams] instance.
+  const IOSWebMessageChannelCreationParams(
+      {required super.id, required super.port1, required super.port2});
 
-  ///The first [WebMessagePort] object of the channel.
-  final WebMessagePort port1;
-
-  ///The second [WebMessagePort] object of the channel.
-  final WebMessagePort port2;
-
-  late MethodChannel _channel;
-
-  WebMessageChannel(
-      {required this.id, required this.port1, required this.port2}) {
-    this._channel = MethodChannel(
-        'com.pichillilorenzo/flutter_inappwebview_web_message_channel_$id');
-    this._channel.setMethodCallHandler(handleMethod);
+  /// Creates a [IOSWebMessageChannelCreationParams] instance based on [PlatformWebMessageChannelCreationParams].
+  factory IOSWebMessageChannelCreationParams.fromPlatformWebMessageChannelCreationParams(
+      // Recommended placeholder to prevent being broken by platform interface.
+      // ignore: avoid_unused_constructor_parameters
+      PlatformWebMessageChannelCreationParams params) {
+    return IOSWebMessageChannelCreationParams(
+        id: params.id, port1: params.port1, port2: params.port2);
   }
 
-  static WebMessageChannel? fromMap(Map<String, dynamic>? map) {
+  @override
+  String toString() {
+    return 'IOSWebMessageChannelCreationParams{id: $id, port1: $port1, port2: $port2}';
+  }
+}
+
+///{@macro flutter_inappwebview_platform_interface.PlatformWebMessageChannel}
+class IOSWebMessageChannel extends PlatformWebMessageChannel
+    with ChannelController {
+  /// Constructs a [IOSWebMessageChannel].
+  IOSWebMessageChannel(PlatformWebMessageChannelCreationParams params)
+      : super.implementation(
+          params is IOSWebMessageChannelCreationParams
+              ? params
+              : IOSWebMessageChannelCreationParams
+                  .fromPlatformWebMessageChannelCreationParams(params),
+        ) {
+    channel = MethodChannel(
+        'com.pichillilorenzo/flutter_inappwebview_web_message_channel_${params.id}');
+    handler = _handleMethod;
+    initMethodCallHandler();
+  }
+
+  static final IOSWebMessageChannel _staticValue = IOSWebMessageChannel(
+      IOSWebMessageChannelCreationParams(
+          id: '',
+          port1: IOSWebMessagePort(IOSWebMessagePortCreationParams(index: 0)),
+          port2: IOSWebMessagePort(IOSWebMessagePortCreationParams(index: 1))));
+
+  /// Provide static access.
+  factory IOSWebMessageChannel.static() {
+    return _staticValue;
+  }
+
+  IOSWebMessagePort get _iosPort1 => port1 as IOSWebMessagePort;
+
+  IOSWebMessagePort get _iosPort2 => port2 as IOSWebMessagePort;
+
+  static IOSWebMessageChannel? _fromMap(Map<String, dynamic>? map) {
     if (map == null) {
       return null;
     }
-    var webMessageChannel = WebMessageChannel(
-        id: map["id"],
-        port1: WebMessagePort(index: 0),
-        port2: WebMessagePort(index: 1));
-    webMessageChannel.port1._webMessageChannel = webMessageChannel;
-    webMessageChannel.port2._webMessageChannel = webMessageChannel;
+    var webMessageChannel = IOSWebMessageChannel(
+        IOSWebMessageChannelCreationParams(
+            id: map["id"],
+            port1: IOSWebMessagePort(IOSWebMessagePortCreationParams(index: 0)),
+            port2:
+                IOSWebMessagePort(IOSWebMessagePortCreationParams(index: 1))));
+    webMessageChannel._iosPort1.webMessageChannel = webMessageChannel;
+    webMessageChannel._iosPort2.webMessageChannel = webMessageChannel;
     return webMessageChannel;
   }
 
-  Future<dynamic> handleMethod(MethodCall call) async {
+  Future<dynamic> _handleMethod(MethodCall call) async {
     switch (call.method) {
       case "onMessage":
         int index = call.arguments["index"];
-        var port = index == 0 ? this.port1 : this.port2;
-        if (port._onMessage != null) {
-          String? message = call.arguments["message"];
-          port._onMessage!(message);
+        var port = index == 0 ? _iosPort1 : _iosPort2;
+        if (port.onMessage != null) {
+          WebMessage? message = call.arguments["message"] != null
+              ? WebMessage.fromMap(
+                  call.arguments["message"].cast<String, dynamic>())
+              : null;
+          port.onMessage!(message);
         }
         break;
       default:
@@ -50,101 +95,23 @@ class WebMessageChannel {
     }
     return null;
   }
-}
 
-///The representation of the [HTML5 message ports](https://html.spec.whatwg.org/multipage/comms.html#messageport).
-///
-///A Message port represents one endpoint of a Message Channel. In Android webview, there is no separate Message Channel object.
-///When a message channel is created, both ports are tangled to each other and started.
-///See [InAppWebViewController.createWebMessageChannel] for creating a message channel.
-///
-///When a message port is first created or received via transfer, it does not have a [WebMessageCallback] to receive web messages.
-///On Android, the messages are queued until a [WebMessageCallback] is set.
-///
-///A message port should be closed when it is not used by the embedder application anymore.
-///A closed port cannot be transferred or cannot be reopened to send messages.
-///Close can be called multiple times.
-///
-///When a port is transferred to JavaScript, it cannot be used to send or receive messages at the Dart side anymore.
-///Different from HTML5 Spec, a port cannot be transferred if one of these has ever happened: i. a message callback was set, ii. a message was posted on it.
-///A transferred port cannot be closed by the application, since the ownership is also transferred.
-///
-///It is possible to transfer both ports of a channel to JavaScript, for example for communication between subframes.
-class WebMessagePort {
-  late final int _index;
-
-  WebMessageCallback? _onMessage;
-  late WebMessageChannel _webMessageChannel;
-
-  WebMessagePort({required int index}) {
-    this._index = index;
+  @override
+  IOSWebMessageChannel? fromMap(Map<String, dynamic>? map) {
+    return _fromMap(map);
   }
 
-  ///Sets a callback to receive message events on the main thread.
-  Future<void> setWebMessageCallback(WebMessageCallback? onMessage) async {
-    Map<String, dynamic> args = <String, dynamic>{};
-    args.putIfAbsent('index', () => this._index);
-    await _webMessageChannel._channel
-        .invokeMethod('setWebMessageCallback', args);
-    this._onMessage = onMessage;
-  }
-
-  ///Post a WebMessage to the entangled port.
-  Future<void> postMessage(WebMessage message) async {
-    Map<String, dynamic> args = <String, dynamic>{};
-    args.putIfAbsent('index', () => this._index);
-    args.putIfAbsent('message', () => message.toMap());
-    await _webMessageChannel._channel.invokeMethod('postMessage', args);
-  }
-
-  ///Close the message port and free any resources associated with it.
-  Future<void> close() async {
-    Map<String, dynamic> args = <String, dynamic>{};
-    args.putIfAbsent('index', () => this._index);
-    await _webMessageChannel._channel.invokeMethod('close', args);
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      "index": this._index,
-      "webMessageChannelId": this._webMessageChannel.id
-    };
-  }
-
-  Map<String, dynamic> toJson() {
-    return this.toMap();
+  @override
+  void dispose() {
+    disposeChannel();
   }
 
   @override
   String toString() {
-    return toMap().toString();
+    return 'IOSWebMessageChannel{id: $id, port1: $port1, port2: $port2}';
   }
 }
 
-///The Dart representation of the HTML5 PostMessage event.
-///See https://html.spec.whatwg.org/multipage/comms.html#the-messageevent-interfaces for definition of a MessageEvent in HTML5.
-class WebMessage {
-  ///The data of the message.
-  String? data;
-
-  ///The ports that are sent with the message.
-  List<WebMessagePort>? ports;
-
-  WebMessage({this.data, this.ports});
-
-  Map<String, dynamic> toMap() {
-    return {
-      "data": this.data,
-      "ports": this.ports?.map((e) => e.toMap()).toList(),
-    };
-  }
-
-  Map<String, dynamic> toJson() {
-    return this.toMap();
-  }
-
-  @override
-  String toString() {
-    return toMap().toString();
-  }
+extension InternalWebMessageChannel on IOSWebMessageChannel {
+  MethodChannel? get internalChannel => channel;
 }
