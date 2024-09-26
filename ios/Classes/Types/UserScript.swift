@@ -8,7 +8,7 @@
 import Foundation
 import WebKit
 
-public class UserScript: WKUserScript {
+public class UserScript : WKUserScript {
     var groupName: String?
 
     private var contentWorldWrapper: Any?
@@ -22,6 +22,7 @@ public class UserScript: WKUserScript {
       }
       set { contentWorldWrapper = newValue }
     }
+
     
     public override init(source: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool) {
         super.init(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly)
@@ -57,7 +58,7 @@ public class UserScript: WKUserScript {
                 groupName: map["groupName"] as? String,
                 source: map["source"] as! String,
                 injectionTime: WKUserScriptInjectionTime.init(rawValue: map["injectionTime"] as! Int) ?? .atDocumentStart,
-                forMainFrameOnly: map["forMainFrameOnly"] as! Bool,
+                forMainFrameOnly: map["iosForMainFrameOnly"] as! Bool,
                 in: contentWorld
             )
         }
@@ -65,7 +66,7 @@ public class UserScript: WKUserScript {
             groupName: map["groupName"] as? String,
             source: map["source"] as! String,
             injectionTime: WKUserScriptInjectionTime.init(rawValue: map["injectionTime"] as! Int) ?? .atDocumentStart,
-            forMainFrameOnly: map["forMainFrameOnly"] as! Bool
+            forMainFrameOnly: map["iosForMainFrameOnly"] as! Bool
         )
     }
 }

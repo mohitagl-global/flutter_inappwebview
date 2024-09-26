@@ -1,3 +1,7 @@
-export 'in_app_webview_controller.dart' hide InternalInAppWebViewController;
+export 'webview.dart';
 export 'in_app_webview.dart';
-export 'headless_in_app_webview.dart' hide InternalHeadlessInAppWebView;
+export 'in_app_webview_controller.dart';
+export 'in_app_webview_options.dart';
+export 'headless_in_app_webview.dart';
+export 'android/main.dart';
+export 'ios/main.dart';
