@@ -1,4 +1,4 @@
-name: flutter_inappwebview_ios
+name: flutter_inappwebview
 description: iOS implementation of the flutter_inappwebview plugin.
 version: 1.1.0+1
 homepage: https://inappwebview.dev/
