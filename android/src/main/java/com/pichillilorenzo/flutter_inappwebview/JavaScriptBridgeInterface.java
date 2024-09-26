@@ -35,7 +35,7 @@ public class JavaScriptBridgeInterface {
       return;
     }
 
-    final Handler handler = new Handler(inAppWebView.getWebViewLooper());
+    final Handler handler = new Handler(Looper.getMainLooper());
     handler.post(new Runnable() {
       @Override
       public void run() {
@@ -58,7 +58,7 @@ public class JavaScriptBridgeInterface {
 
     // java.lang.RuntimeException: Methods marked with @UiThread must be executed on the main thread.
     // https://github.com/pichillilorenzo/flutter_inappwebview/issues/98
-    final Handler handler = new Handler(inAppWebView.getWebViewLooper());
+    final Handler handler = new Handler(Looper.getMainLooper());
     handler.post(new Runnable() {
       @Override
       public void run() {

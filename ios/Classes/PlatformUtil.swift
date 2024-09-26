@@ -60,10 +60,4 @@ class PlatformUtil: NSObject, FlutterPlugin {
         formatter.timeZone = timezone
         return formatter.string(from: PlatformUtil.getDateFromMilliseconds(date: date))
     }
-    
-    public func dispose() {
-        PlatformUtil.channel?.setMethodCallHandler(nil)
-        PlatformUtil.channel = nil
-        PlatformUtil.registrar = nil
-    }
 }

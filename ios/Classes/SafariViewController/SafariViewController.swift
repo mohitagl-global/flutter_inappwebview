@@ -22,7 +22,6 @@ public class SafariViewController: SFSafariViewController, FlutterPlugin, SFSafa
     
     deinit {
         print("SafariViewController - dealloc")
-        dispose()
     }
     
     public func prepareMethodChannel() {
@@ -124,21 +123,20 @@ public class SafariViewController: SFSafariViewController, FlutterPlugin, SFSafa
 //    }
     
     public func onChromeSafariBrowserOpened() {
-        channel?.invokeMethod("onChromeSafariBrowserOpened", arguments: [])
+        channel!.invokeMethod("onChromeSafariBrowserOpened", arguments: [])
     }
     
     public func onChromeSafariBrowserCompletedInitialLoad() {
-        channel?.invokeMethod("onChromeSafariBrowserCompletedInitialLoad", arguments: [])
+        channel!.invokeMethod("onChromeSafariBrowserCompletedInitialLoad", arguments: [])
     }
     
     public func onChromeSafariBrowserClosed() {
-        channel?.invokeMethod("onChromeSafariBrowserClosed", arguments: [])
+        channel!.invokeMethod("onChromeSafariBrowserClosed", arguments: [])
     }
     
     public func dispose() {
-        channel?.setMethodCallHandler(nil)
-        channel = nil
         delegate = nil
+        channel!.setMethodCallHandler(nil)
     }
 }
 
@@ -182,12 +180,7 @@ class CustomUIActivity : UIActivity {
     }
 
     override func perform() {
-        guard let registrar = SwiftFlutterPlugin.instance?.registrar else {
-            return
-        }
-        
-        let channel = FlutterMethodChannel(name: "com.pichillilorenzo/flutter_chromesafaribrowser_" + viewId,
-                                           binaryMessenger: registrar.messenger())
+        let channel = FlutterMethodChannel(name: "com.pichillilorenzo/flutter_chromesafaribrowser_" + viewId, binaryMessenger: SwiftFlutterPlugin.instance!.registrar!.messenger())
         
         let arguments: [String: Any?] = [
             "url": url.absoluteString,

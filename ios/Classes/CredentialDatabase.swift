@@ -31,11 +31,7 @@ class CredentialDatabase: NSObject, FlutterPlugin {
         switch call.method {
             case "getAllAuthCredentials":
                 var allCredentials: [[String: Any?]] = []
-                guard let credentialStore = CredentialDatabase.credentialStore else {
-                    result(allCredentials)
-                    return
-                }
-                for (protectionSpace, credentials) in credentialStore.allCredentials {
+                for (protectionSpace, credentials) in CredentialDatabase.credentialStore!.allCredentials {
                     var crendentials: [[String: Any?]] = []
                     for c in credentials {
                         let credential: [String: Any?] = c.value.toMap()
@@ -47,17 +43,10 @@ class CredentialDatabase: NSObject, FlutterPlugin {
                             "credentials": crendentials
                         ]
                         allCredentials.append(dict)
-                    }
-                }
+                    }                }
                 result(allCredentials)
                 break
             case "getHttpAuthCredentials":
-                var crendentials: [[String: Any?]] = []
-                guard let credentialStore = CredentialDatabase.credentialStore else {
-                    result(crendentials)
-                    return
-                }
-            
                 let host = arguments!["host"] as! String
                 let urlProtocol = arguments!["protocol"] as? String
                 let urlPort = arguments!["port"] as? Int ?? 0
@@ -65,8 +54,9 @@ class CredentialDatabase: NSObject, FlutterPlugin {
                 if let r = realm, r.isEmpty {
                     realm = nil
                 }
+                var crendentials: [[String: Any?]] = []
 
-                for (protectionSpace, credentials) in credentialStore.allCredentials {
+                for (protectionSpace, credentials) in CredentialDatabase.credentialStore!.allCredentials {
                     if protectionSpace.host == host && protectionSpace.realm == realm &&
                     protectionSpace.protocol == urlProtocol && protectionSpace.port == urlPort {
                         for c in credentials {
@@ -78,11 +68,6 @@ class CredentialDatabase: NSObject, FlutterPlugin {
                 result(crendentials)
                 break
             case "setHttpAuthCredential":
-                guard let credentialStore = CredentialDatabase.credentialStore else {
-                    result(false)
-                    return
-                }
-            
                 let host = arguments!["host"] as! String
                 let urlProtocol = arguments!["protocol"] as? String
                 let urlPort = arguments!["port"] as? Int ?? 0
@@ -93,17 +78,11 @@ class CredentialDatabase: NSObject, FlutterPlugin {
                 let username = arguments!["username"] as! String
                 let password = arguments!["password"] as! String
                 let credential = URLCredential(user: username, password: password, persistence: .permanent)
-                credentialStore.set(credential,
-                                    for: URLProtectionSpace(host: host, port: urlPort, protocol: urlProtocol,
-                                                            realm: realm, authenticationMethod: NSURLAuthenticationMethodHTTPBasic))
+                CredentialDatabase.credentialStore!.set(credential,
+                                                        for: URLProtectionSpace(host: host, port: urlPort, protocol: urlProtocol, realm: realm, authenticationMethod: NSURLAuthenticationMethodHTTPBasic))
                 result(true)
                 break
             case "removeHttpAuthCredential":
-                guard let credentialStore = CredentialDatabase.credentialStore else {
-                    result(false)
-                    return
-                }
-            
                 let host = arguments!["host"] as! String
                 let urlProtocol = arguments!["protocol"] as? String
                 let urlPort = arguments!["port"] as? Int ?? 0
@@ -117,7 +96,7 @@ class CredentialDatabase: NSObject, FlutterPlugin {
                 var credential: URLCredential? = nil;
                 var protectionSpaceCredential: URLProtectionSpace? = nil
                 
-                for (protectionSpace, credentials) in credentialStore.allCredentials {
+                for (protectionSpace, credentials) in CredentialDatabase.credentialStore!.allCredentials {
                     if protectionSpace.host == host && protectionSpace.realm == realm &&
                     protectionSpace.protocol == urlProtocol && protectionSpace.port == urlPort {
                         for c in credentials {
@@ -134,17 +113,12 @@ class CredentialDatabase: NSObject, FlutterPlugin {
                 }
                 
                 if let c = credential, let protectionSpace = protectionSpaceCredential {
-                    credentialStore.remove(c, for: protectionSpace)
+                    CredentialDatabase.credentialStore!.remove(c, for: protectionSpace)
                 }
                 
                 result(true)
                 break
             case "removeHttpAuthCredentials":
-                guard let credentialStore = CredentialDatabase.credentialStore else {
-                    result(false)
-                    return
-                }
-            
                 let host = arguments!["host"] as! String
                 let urlProtocol = arguments!["protocol"] as? String
                 let urlPort = arguments!["port"] as? Int ?? 0
@@ -156,7 +130,7 @@ class CredentialDatabase: NSObject, FlutterPlugin {
                 var credentialsToRemove: [URLCredential] = [];
                 var protectionSpaceCredential: URLProtectionSpace? = nil
                 
-                for (protectionSpace, credentials) in credentialStore.allCredentials {
+                for (protectionSpace, credentials) in CredentialDatabase.credentialStore!.allCredentials {
                     if protectionSpace.host == host && protectionSpace.realm == realm &&
                     protectionSpace.protocol == urlProtocol && protectionSpace.port == urlPort {
                         protectionSpaceCredential = protectionSpace
@@ -171,21 +145,16 @@ class CredentialDatabase: NSObject, FlutterPlugin {
                 
                 if let protectionSpace = protectionSpaceCredential {
                     for credential in credentialsToRemove {
-                        credentialStore.remove(credential, for: protectionSpace)
+                        CredentialDatabase.credentialStore!.remove(credential, for: protectionSpace)
                     }
                 }
                 
                 result(true)
                 break
             case "clearAllAuthCredentials":
-                guard let credentialStore = CredentialDatabase.credentialStore else {
-                    result(false)
-                    return
-                }
-            
-                for (protectionSpace, credentials) in credentialStore.allCredentials {
+                for (protectionSpace, credentials) in CredentialDatabase.credentialStore!.allCredentials {
                     for credential in credentials {
-                        credentialStore.remove(credential.value, for: protectionSpace)
+                        CredentialDatabase.credentialStore!.remove(credential.value, for: protectionSpace)
                     }
                 }
                 result(true)
@@ -194,12 +163,5 @@ class CredentialDatabase: NSObject, FlutterPlugin {
                 result(FlutterMethodNotImplemented)
                 break
         }
-    }
-    
-    public func dispose() {
-        CredentialDatabase.channel?.setMethodCallHandler(nil)
-        CredentialDatabase.channel = nil
-        CredentialDatabase.registrar = nil
-        CredentialDatabase.credentialStore = nil
     }
 }

@@ -201,13 +201,6 @@ public class InAppWebViewMethodHandler: FlutterMethodCallDelegate {
                     result(FlutterMethodNotImplemented)
                 }
                 break
-            case "isHidden":
-                if let iabController = webView?.inAppBrowserDelegate as? InAppBrowserWebViewController {
-                    result(iabController.isHidden)
-                } else {
-                    result(FlutterMethodNotImplemented)
-                }
-                break
             case "getCopyBackForwardList":
                 result(webView?.getCopyBackForwardList())
                 break
@@ -296,17 +289,14 @@ public class InAppWebViewMethodHandler: FlutterMethodCallDelegate {
                 result(webView?.getContentHeight())
                 break
             case "zoomBy":
-                let zoomFactor = (arguments!["zoomFactor"] as! NSNumber).floatValue
-                let animated = arguments!["animated"] as! Bool
+                let zoomFactor = arguments!["zoomFactor"] as! Float
+                let animated = arguments!["iosAnimated"] as! Bool
                 webView?.zoomBy(zoomFactor: zoomFactor, animated: animated)
                 result(true)
                 break
             case "reloadFromOrigin":
                 webView?.reloadFromOrigin()
                 result(true)
-                break
-            case "getOriginalUrl":
-                result(webView?.getOriginalUrl()?.absoluteString)
                 break
             case "getZoomScale":
                 result(webView?.getZoomScale())
@@ -424,7 +414,7 @@ public class InAppWebViewMethodHandler: FlutterMethodCallDelegate {
                 break
             case "callAsyncJavaScript":
                 if let webView = webView, #available(iOS 10.3, *) {
-                    if #available(iOS 14.3, *) { // on iOS 14.0, for some reason, it crashes
+                    if #available(iOS 14.0, *) {
                         let functionBody = arguments!["functionBody"] as! String
                         let functionArguments = arguments!["arguments"] as! [String:Any]
                         var contentWorld = WKContentWorld.page
@@ -560,12 +550,8 @@ public class InAppWebViewMethodHandler: FlutterMethodCallDelegate {
         }
     }
     
-    public func dispose() {
-        webView = nil
-    }
-    
     deinit {
         print("InAppWebViewMethodHandler - dealloc")
-        dispose()
+        webView = nil
     }
 }

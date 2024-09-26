@@ -21,7 +21,7 @@ extension WKUserContentController {
     var contentWorlds: Set<WKContentWorld> {
         get {
             let tmpAddress = String(format: "%p", unsafeBitCast(self, to: Int.self))
-            return WKUserContentController._contentWorlds[tmpAddress] ?? []
+            return WKUserContentController._contentWorlds[tmpAddress]!
         }
         set(newValue) {
             let tmpAddress = String(format: "%p", unsafeBitCast(self, to: Int.self))
@@ -33,7 +33,7 @@ extension WKUserContentController {
     var userOnlyScripts: [WKUserScriptInjectionTime:OrderedSet<UserScript>] {
         get {
             let tmpAddress = String(format: "%p", unsafeBitCast(self, to: Int.self))
-            return WKUserContentController._userOnlyScripts[tmpAddress] ?? [:]
+            return WKUserContentController._userOnlyScripts[tmpAddress]!
         }
         set(newValue) {
             let tmpAddress = String(format: "%p", unsafeBitCast(self, to: Int.self))
@@ -45,7 +45,7 @@ extension WKUserContentController {
     var pluginScripts: [WKUserScriptInjectionTime:OrderedSet<PluginScript>] {
         get {
             let tmpAddress = String(format: "%p", unsafeBitCast(self, to: Int.self))
-            return WKUserContentController._pluginScripts[tmpAddress] ?? [:]
+            return WKUserContentController._pluginScripts[tmpAddress]!
         }
         set(newValue) {
             let tmpAddress = String(format: "%p", unsafeBitCast(self, to: Int.self))
@@ -276,7 +276,7 @@ extension WKUserContentController {
 
         var userScriptsUpdated: [WKUserScript] = []
         for script in userScripts {
-            if !scriptsToRemove.contains(script) {
+            if !userScripts.contains(script) {
                 userScriptsUpdated.append(script)
             }
         }
@@ -296,7 +296,6 @@ extension WKUserContentController {
         for script in allUserOnlyScripts {
             if let scriptName = script.groupName, scriptName == groupName {
                 scriptsToRemove.append(script)
-                userOnlyScripts[script.injectionTime]!.remove(script)
             }
         }
         removeUserScripts(scriptsToRemove: scriptsToRemove, shouldAddPreviousScripts: shouldAddPreviousScripts)
@@ -308,7 +307,6 @@ extension WKUserContentController {
         for script in allPluginScripts {
             if let scriptName = script.groupName, scriptName == groupName {
                 scriptsToRemove.append(script)
-                pluginScripts[script.injectionTime]!.remove(script)
             }
         }
         removeUserScripts(scriptsToRemove: scriptsToRemove, shouldAddPreviousScripts: shouldAddPreviousScripts)

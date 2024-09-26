@@ -91,10 +91,4 @@ public class ChromeSafariBrowserManager: NSObject, FlutterPlugin {
         
         result(FlutterError.init(code: "ChromeSafariBrowserManager", message: "SafariViewController is not available!", details: nil))
     }
-    
-    public func dispose() {
-        ChromeSafariBrowserManager.channel?.setMethodCallHandler(nil)
-        ChromeSafariBrowserManager.channel = nil
-        ChromeSafariBrowserManager.registrar = nil
-    }
 }

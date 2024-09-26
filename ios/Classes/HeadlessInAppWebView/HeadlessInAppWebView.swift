@@ -89,12 +89,7 @@ public class HeadlessInAppWebView : FlutterMethodCallDelegate {
     public func dispose() {
         channel?.setMethodCallHandler(nil)
         channel = nil
-        HeadlessInAppWebViewManager.webViews[id] = nil
+        HeadlessInAppWebViewManager.webViews.removeValue(forKey: id)
         flutterWebView = nil
-    }
-    
-    deinit {
-        print("HeadlessInAppWebView - dealloc")
-        dispose()
     }
 }

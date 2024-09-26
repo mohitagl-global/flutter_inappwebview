@@ -23,6 +23,5 @@ public class WebMessage : NSObject {
     
     deinit {
         print("WebMessage - dealloc")
-        dispose()
     }
 }

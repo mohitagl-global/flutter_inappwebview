@@ -2,6 +2,7 @@ package com.pichillilorenzo.flutter_inappwebview.content_blocker;
 
 import android.os.Build;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.webkit.WebResourceResponse;
 
@@ -19,8 +20,6 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.regex.Matcher;
-
-import javax.net.ssl.SSLHandshakeException;
 
 import okhttp3.Request;
 import okhttp3.Response;
@@ -98,7 +97,7 @@ public class ContentBlockerHandler {
                 final String[] webViewUrl = new String[1];
                 if (!trigger.getLoadType().isEmpty() || !trigger.getIfTopUrl().isEmpty() || !trigger.getUnlessTopUrl().isEmpty()) {
                     final CountDownLatch latch = new CountDownLatch(1);
-                    Handler handler = new Handler(webView.getWebViewLooper());
+                    Handler handler = new Handler(Looper.getMainLooper());
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -161,7 +160,7 @@ public class ContentBlockerHandler {
                                 "   d.addEventListener('DOMContentLoaded', function(event) { hide(); }); " +
                                 "})(document);";
 
-                        final Handler handler = new Handler(webView.getWebViewLooper());
+                        final Handler handler = new Handler(Looper.getMainLooper());
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
@@ -182,7 +181,7 @@ public class ContentBlockerHandler {
                             Response response = null;
 
                             try {
-                                response = Util.getBasicOkHttpClient().newCall(mRequest).execute();
+                                response = Util.getUnsafeOkHttpClient().newCall(mRequest).execute();
                                 byte[] dataBytes = response.body().bytes();
                                 InputStream dataStream = new ByteArrayInputStream(dataBytes);
 
@@ -199,14 +198,12 @@ public class ContentBlockerHandler {
                                 return new WebResourceResponse(contentType, encoding, dataStream);
 
                             } catch (Exception e) {
+                                e.printStackTrace();
                                 if (response != null) {
                                     response.body().close();
                                     response.close();
                                 }
-                                if (!(e instanceof SSLHandshakeException)) {
-                                    e.printStackTrace();
-                                    Log.e(LOG_TAG, e.getMessage());
-                                }
+                                Log.e(LOG_TAG, e.getMessage());
                             }
                         }
                         break;
@@ -234,7 +231,7 @@ public class ContentBlockerHandler {
             Request mRequest = new Request.Builder().url(url).head().build();
             Response response = null;
             try {
-                response = Util.getBasicOkHttpClient().newCall(mRequest).execute();
+                response = Util.getUnsafeOkHttpClient().newCall(mRequest).execute();
 
                 if (response.header("content-type") != null) {
                     String[] contentTypeSplitted = response.header("content-type").split(";");
@@ -254,10 +251,8 @@ public class ContentBlockerHandler {
                     response.body().close();
                     response.close();
                 }
-                if (!(e instanceof SSLHandshakeException)) {
-                    e.printStackTrace();
-                    Log.e(LOG_TAG, e.getMessage());
-                }
+                e.printStackTrace();
+                Log.e(LOG_TAG, e.getMessage());
             }
         }
         return responseResourceType;

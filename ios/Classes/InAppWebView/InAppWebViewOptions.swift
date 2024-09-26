@@ -69,7 +69,6 @@ public class InAppWebViewOptions: Options<InAppWebView> {
     var applePayAPIEnabled = false
     var allowingReadAccessTo: String? = nil
     var disableLongPressContextMenuOnLinks = false
-    var disableInputAccessoryView = false
     
     override init(){
         super.init()

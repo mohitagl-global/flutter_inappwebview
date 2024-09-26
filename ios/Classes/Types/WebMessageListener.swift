@@ -10,18 +10,16 @@ import WebKit
 
 public class WebMessageListener : FlutterMethodCallDelegate {
 
-    var id: String
     var jsObjectName: String
     var allowedOriginRules: Set<String>
     var channel: FlutterMethodChannel?
     var webView: InAppWebView?
     
-    public init(id: String, jsObjectName: String, allowedOriginRules: Set<String>) {
-        self.id = id
+    public init(jsObjectName: String, allowedOriginRules: Set<String>) {
         self.jsObjectName = jsObjectName
         self.allowedOriginRules = allowedOriginRules
         super.init()
-        self.channel = FlutterMethodChannel(name: "com.pichillilorenzo/flutter_inappwebview_web_message_listener_" + self.id + "_" + self.jsObjectName,
+        self.channel = FlutterMethodChannel(name: "com.pichillilorenzo/flutter_inappwebview_web_message_listener_" + self.jsObjectName,
                                        binaryMessenger: SwiftFlutterPlugin.instance!.registrar!.messenger())
         self.channel?.setMethodCallHandler(self.handle)
     }
@@ -85,9 +83,8 @@ public class WebMessageListener : FlutterMethodCallDelegate {
                     return "'*'"
                 }
                 let rule = URL(string: allowedOriginRule)!
-                let host = rule.host != nil ? "'" + rule.host!.replacingOccurrences(of: "\'", with: "\\'") + "'" : "null"
                 return """
-                {scheme: '\(rule.scheme!)', host: \(host), port: \(rule.port != nil ? String(rule.port!) : "null")}
+                {scheme: '\(rule.scheme!)', host: '\(rule.host?.replacingOccurrences(of: "\'", with: "\\'") ?? "null")', port: \(rule.port != nil ? String(rule.port!) : "null")}
                 """
             }.joined(separator: ", ")
             let source = """
@@ -103,7 +100,7 @@ public class WebMessageListener : FlutterMethodCallDelegate {
             })();
             """
             webView.configuration.userContentController.addPluginScript(PluginScript(
-                groupName: "WebMessageListener-" + id + "-" + jsObjectName,
+                groupName: "WebMessageListener-" + jsObjectName,
                 source: source,
                 injectionTime: .atDocumentStart,
                 forMainFrameOnly: false,
@@ -119,7 +116,6 @@ public class WebMessageListener : FlutterMethodCallDelegate {
             return nil
         }
         return WebMessageListener(
-            id: map["id"] as! String,
             jsObjectName: map["jsObjectName"] as! String,
             allowedOriginRules: Set(map["allowedOriginRules"] as! [String])
         )
@@ -225,6 +221,5 @@ public class WebMessageListener : FlutterMethodCallDelegate {
     
     deinit {
         print("WebMessageListener - dealloc")
-        dispose()
     }
 }

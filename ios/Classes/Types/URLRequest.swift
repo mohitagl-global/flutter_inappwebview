@@ -9,11 +9,8 @@ import Foundation
 
 extension URLRequest {
     public init(fromPluginMap: [String:Any?]) {
-        if let urlString = fromPluginMap["url"] as? String, let url = URL(string: urlString) {
-            self.init(url: url)
-        } else {
-            self.init(url: URL(string: "about:blank")!)
-        }
+        let url = fromPluginMap["url"] as! String
+        self.init(url: URL(string: url)!)
         
         if let method = fromPluginMap["method"] as? String {
             httpMethod = method
@@ -66,7 +63,6 @@ extension URLRequest {
             "url": url?.absoluteString,
             "method": httpMethod,
             "headers": allHTTPHeaderFields,
-            "body": httpBody.map(FlutterStandardTypedData.init(bytes:)),
             "iosAllowsCellularAccess": allowsCellularAccess,
             "iosAllowsConstrainedNetworkAccess": iosAllowsConstrainedNetworkAccess,
             "iosAllowsExpensiveNetworkAccess": iosAllowsExpensiveNetworkAccess,

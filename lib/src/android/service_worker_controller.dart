@@ -13,27 +13,7 @@ class AndroidServiceWorkerController {
   static const MethodChannel _channel = const MethodChannel(
       'com.pichillilorenzo/flutter_inappwebview_android_serviceworkercontroller');
 
-  AndroidServiceWorkerController._();
-
-  AndroidServiceWorkerClient? _serviceWorkerClient;
-
-  AndroidServiceWorkerClient? get serviceWorkerClient => _serviceWorkerClient;
-
-  @Deprecated("Use setServiceWorkerClient instead")
-  set serviceWorkerClient(AndroidServiceWorkerClient? value) {
-    Map<String, dynamic> args = <String, dynamic>{};
-    args.putIfAbsent('isNull', () => value == null);
-    _channel.invokeMethod("setServiceWorkerClient", args);
-    _serviceWorkerClient = value;
-  }
-
-  ///Sets the service worker client
-  setServiceWorkerClient(AndroidServiceWorkerClient? value) async {
-    Map<String, dynamic> args = <String, dynamic>{};
-    args.putIfAbsent('isNull', () => value == null);
-    await _channel.invokeMethod("setServiceWorkerClient", args);
-    _serviceWorkerClient = value;
-  }
+  AndroidServiceWorkerClient? serviceWorkerClient;
 
   ///Gets the [AndroidServiceWorkerController] shared instance.
   static AndroidServiceWorkerController instance() {
@@ -42,7 +22,7 @@ class AndroidServiceWorkerController {
 
   static AndroidServiceWorkerController _init() {
     _channel.setMethodCallHandler(_handleMethod);
-    _instance = AndroidServiceWorkerController._();
+    _instance = AndroidServiceWorkerController();
     return _instance!;
   }
 

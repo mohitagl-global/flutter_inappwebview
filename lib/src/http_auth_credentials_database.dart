@@ -13,8 +13,6 @@ class HttpAuthCredentialDatabase {
   static const MethodChannel _channel = const MethodChannel(
       'com.pichillilorenzo/flutter_inappwebview_credential_database');
 
-  HttpAuthCredentialDatabase._();
-
   ///Gets the database shared instance.
   static HttpAuthCredentialDatabase instance() {
     return (_instance != null) ? _instance! : _init();
@@ -22,7 +20,7 @@ class HttpAuthCredentialDatabase {
 
   static HttpAuthCredentialDatabase _init() {
     _channel.setMethodCallHandler(_handleMethod);
-    _instance = HttpAuthCredentialDatabase._();
+    _instance = HttpAuthCredentialDatabase();
     return _instance!;
   }
 

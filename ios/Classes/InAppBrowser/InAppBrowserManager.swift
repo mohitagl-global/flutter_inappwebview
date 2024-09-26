@@ -140,10 +140,4 @@ public class InAppBrowserManager: NSObject, FlutterPlugin {
         }
         result(true)
     }
-    
-    public func dispose() {
-        InAppBrowserManager.channel?.setMethodCallHandler(nil)
-        InAppBrowserManager.channel = nil
-        InAppBrowserManager.registrar = nil
-    }
 }

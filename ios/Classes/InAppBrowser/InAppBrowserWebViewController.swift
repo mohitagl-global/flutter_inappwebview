@@ -38,7 +38,6 @@ public class InAppBrowserWebViewController: UIViewController, InAppBrowserDelega
     var initialUserScripts: [[String: Any]] = []
     var pullToRefreshInitialOptions: [String: Any?] = [:]
     var methodCallDelegate: InAppWebViewMethodHandler?
-    var isHidden = false
 
     public override func loadView() {
         channel = FlutterMethodChannel(name: "com.pichillilorenzo/flutter_inappbrowser_" + id, binaryMessenger: SwiftFlutterPlugin.instance!.registrar!.messenger())
@@ -117,7 +116,6 @@ public class InAppBrowserWebViewController: UIViewController, InAppBrowserDelega
         
         if let wId = windowId, let webViewTransport = InAppWebView.windowWebViews[wId] {
             webView.load(webViewTransport.request)
-            onBrowserCreated()
         } else {
             if #available(iOS 11.0, *) {
                 if let contentBlockers = webView.options?.contentBlockers, contentBlockers.count > 0 {
@@ -184,7 +182,6 @@ public class InAppBrowserWebViewController: UIViewController, InAppBrowserDelega
     
     deinit {
         print("InAppBrowserWebViewController - dealloc")
-        dispose()
     }
     
     public override func viewDidDisappear(_ animated: Bool) {
@@ -247,7 +244,7 @@ public class InAppBrowserWebViewController: UIViewController, InAppBrowserDelega
                     navigationController?.navigationBar.barTintColor = UIColor(hexString: barTintColor)
                 }
                 if let tintColor = browserOptions.toolbarTopTintColor, !tintColor.isEmpty {
-                    navigationController?.navigationBar.tintColor = UIColor(hexString: tintColor)
+                    navigationController?.navigationBar.barTintColor = UIColor(hexString: tintColor)
                 }
                 navigationController?.navigationBar.isTranslucent = browserOptions.toolbarTopTranslucent
             }
@@ -356,7 +353,6 @@ public class InAppBrowserWebViewController: UIViewController, InAppBrowserDelega
     
     public func show(completion: (() -> Void)? = nil) {
         if let navController = navigationController as? InAppBrowserNavigationController, let window = navController.tmpWindow {
-            isHidden = false
             window.alpha = 0.0
             window.isHidden = false
             window.makeKeyAndVisible()
@@ -369,7 +365,6 @@ public class InAppBrowserWebViewController: UIViewController, InAppBrowserDelega
 
     public func hide(completion: (() -> Void)? = nil) {
         if let navController = navigationController as? InAppBrowserNavigationController, let window = navController.tmpWindow {
-            isHidden = true
             window.alpha = 1.0
             UIView.animate(withDuration: 0.2) {
                 window.alpha = 0.0
@@ -555,10 +550,7 @@ public class InAppBrowserWebViewController: UIViewController, InAppBrowserDelega
     }
     
     public func dispose() {
-        onExit()
-        channel?.setMethodCallHandler(nil)
-        channel = nil
-        webView?.dispose()
+        webView.dispose()
         webView = nil
         view = nil
         if previousStatusBarStyle != -1 {
@@ -571,15 +563,18 @@ public class InAppBrowserWebViewController: UIViewController, InAppBrowserDelega
         backButton.target = nil
         reloadButton.target = nil
         shareButton.target = nil
+        onExit()
+        channel?.setMethodCallHandler(nil)
+        channel = nil
         methodCallDelegate?.webView = nil
         methodCallDelegate = nil
     }
     
     public func onBrowserCreated() {
-        channel?.invokeMethod("onBrowserCreated", arguments: [])
+        channel!.invokeMethod("onBrowserCreated", arguments: [])
     }
     
     public func onExit() {
-        channel?.invokeMethod("onExit", arguments: [])
+        channel!.invokeMethod("onExit", arguments: [])
     }
 }

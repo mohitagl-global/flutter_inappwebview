@@ -580,7 +580,6 @@ class MimeTypeResolver {
     "zirz": "application/vnd.zul",
     "zaz": "application/vnd.zzazz.deck+xml",
     "vxml": "application/voicexml+xml",
-    "wasm": "application/wasm",
     "wgt": "application/widget",
     "hlp": "application/winhlp",
     "wsdl": "application/wsdl+xml",
