@@ -8,7 +8,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 
 import '../context_menu.dart';
 import '../types.dart';
@@ -17,6 +16,7 @@ import 'webview.dart';
 import 'in_app_webview_controller.dart';
 import 'in_app_webview_options.dart';
 import '../pull_to_refresh/pull_to_refresh_controller.dart';
+import '../pull_to_refresh/pull_to_refresh_options.dart';
 
 ///Flutter Widget for adding an **inline native WebView** integrated in the flutter widget tree.
 class InAppWebView extends StatefulWidget implements WebView {
@@ -41,6 +41,7 @@ class InAppWebView extends StatefulWidget implements WebView {
     this.initialOptions,
     this.initialUserScripts,
     this.pullToRefreshController,
+    this.implementation = WebViewImplementation.NATIVE,
     this.contextMenu,
     this.onWebViewCreated,
     this.onLoadStart,
@@ -52,7 +53,8 @@ class InAppWebView extends StatefulWidget implements WebView {
     this.shouldOverrideUrlLoading,
     this.onLoadResource,
     this.onScrollChanged,
-    this.onDownloadStart,
+    @Deprecated('Use `onDownloadStartRequest` instead') this.onDownloadStart,
+    this.onDownloadStartRequest,
     this.onLoadResourceCustomScheme,
     this.onCreateWindow,
     this.onCloseWindow,
@@ -136,6 +138,9 @@ class InAppWebView extends StatefulWidget implements WebView {
   final URLRequest? initialUrlRequest;
 
   @override
+  final WebViewImplementation implementation;
+
+  @override
   final UnmodifiableListView<UserScript>? initialUserScripts;
 
   @override
@@ -207,9 +212,15 @@ class InAppWebView extends StatefulWidget implements WebView {
           InAppWebViewController controller, Uri url, bool precomposed)?
       androidOnReceivedTouchIconUrl;
 
+  ///Use [onDownloadStartRequest] instead
+  @Deprecated('Use `onDownloadStartRequest` instead')
   @override
   final void Function(InAppWebViewController controller, Uri url)?
       onDownloadStart;
+
+  @override
+  final void Function(InAppWebViewController controller,
+      DownloadStartRequest downloadStartRequest)? onDownloadStartRequest;
 
   @override
   final void Function(InAppWebViewController controller, int activeMatchOrdinal,
@@ -370,92 +381,60 @@ class _InAppWebViewState extends State<InAppWebView> {
       var useHybridComposition =
           widget.initialOptions?.android.useHybridComposition ?? false;
 
-      if (!useHybridComposition && widget.pullToRefreshController != null) {
-        throw new Exception(
-            "To use the pull-to-refresh feature, useHybridComposition Android-specific option MUST be true!");
-      }
-
-      if (useHybridComposition) {
-        return PlatformViewLink(
-          viewType: 'com.pichillilorenzo/flutter_inappwebview',
-          surfaceFactory: (
-            BuildContext context,
-            PlatformViewController controller,
-          ) {
-            return AndroidViewSurface(
-              controller: controller as AndroidViewController,
-              gestureRecognizers: widget.gestureRecognizers ??
-                  const <Factory<OneSequenceGestureRecognizer>>{},
-              hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-            );
-          },
-          onCreatePlatformView: (PlatformViewCreationParams params) {
-            return PlatformViewsService.initSurfaceAndroidView(
+      return PlatformViewLink(
+        viewType: 'com.pichillilorenzo/flutter_inappwebview',
+        surfaceFactory: (
+          BuildContext context,
+          PlatformViewController controller,
+        ) {
+          return AndroidViewSurface(
+            controller: controller as AndroidViewController,
+            gestureRecognizers: widget.gestureRecognizers ??
+                const <Factory<OneSequenceGestureRecognizer>>{},
+            hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+          );
+        },
+        onCreatePlatformView: (PlatformViewCreationParams params) {
+          return _createAndroidViewController(
+              hybridComposition: useHybridComposition,
               id: params.id,
               viewType: 'com.pichillilorenzo/flutter_inappwebview',
-              layoutDirection: TextDirection.rtl,
+              layoutDirection:
+                  Directionality.maybeOf(context) ?? TextDirection.rtl,
               creationParams: <String, dynamic>{
-                'initialUrlRequest': (widget.initialUrlRequest ??
-                        URLRequest(url: Uri.parse("about:blank")))
-                    .toMap(),
+                'initialUrlRequest': widget.initialUrlRequest?.toMap(),
                 'initialFile': widget.initialFile,
                 'initialData': widget.initialData?.toMap(),
                 'initialOptions': widget.initialOptions?.toMap() ?? {},
                 'contextMenu': widget.contextMenu?.toMap() ?? {},
                 'windowId': widget.windowId,
+                'implementation': widget.implementation.toValue(),
                 'initialUserScripts':
                     widget.initialUserScripts?.map((e) => e.toMap()).toList() ??
                         [],
                 'pullToRefreshOptions':
                     widget.pullToRefreshController?.options.toMap() ??
                         PullToRefreshOptions(enabled: false).toMap()
-              },
-              creationParamsCodec: const StandardMessageCodec(),
-            )
-              ..addOnPlatformViewCreatedListener(params.onPlatformViewCreated)
-              ..addOnPlatformViewCreatedListener(
-                  (id) => _onPlatformViewCreated(id))
-              ..create();
-          },
-        );
-      } else {
-        return AndroidView(
-          viewType: 'com.pichillilorenzo/flutter_inappwebview',
-          onPlatformViewCreated: _onPlatformViewCreated,
-          gestureRecognizers: widget.gestureRecognizers,
-          layoutDirection: TextDirection.rtl,
-          creationParams: <String, dynamic>{
-            'initialUrlRequest': (widget.initialUrlRequest ??
-                    URLRequest(url: Uri.parse("about:blank")))
-                .toMap(),
-            'initialFile': widget.initialFile,
-            'initialData': widget.initialData?.toMap(),
-            'initialOptions': widget.initialOptions?.toMap() ?? {},
-            'contextMenu': widget.contextMenu?.toMap() ?? {},
-            'windowId': widget.windowId,
-            'initialUserScripts':
-                widget.initialUserScripts?.map((e) => e.toMap()).toList() ?? [],
-            'pullToRefreshOptions':
-                widget.pullToRefreshController?.options.toMap() ??
-                    PullToRefreshOptions(enabled: false).toMap()
-          },
-          creationParamsCodec: const StandardMessageCodec(),
-        );
-      }
+              })
+            ..addOnPlatformViewCreatedListener(params.onPlatformViewCreated)
+            ..addOnPlatformViewCreatedListener(
+                (id) => _onPlatformViewCreated(id))
+            ..create();
+        },
+      );
     } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       return UiKitView(
         viewType: 'com.pichillilorenzo/flutter_inappwebview',
         onPlatformViewCreated: _onPlatformViewCreated,
         gestureRecognizers: widget.gestureRecognizers,
         creationParams: <String, dynamic>{
-          'initialUrlRequest': (widget.initialUrlRequest ??
-                  URLRequest(url: Uri.parse("about:blank")))
-              .toMap(),
+          'initialUrlRequest': widget.initialUrlRequest?.toMap(),
           'initialFile': widget.initialFile,
           'initialData': widget.initialData?.toMap(),
           'initialOptions': widget.initialOptions?.toMap() ?? {},
           'contextMenu': widget.contextMenu?.toMap() ?? {},
           'windowId': widget.windowId,
+          'implementation': widget.implementation.toValue(),
           'initialUserScripts':
               widget.initialUserScripts?.map((e) => e.toMap()).toList() ?? [],
           'pullToRefreshOptions':
@@ -477,6 +456,31 @@ class _InAppWebViewState extends State<InAppWebView> {
   @override
   void dispose() {
     super.dispose();
+  }
+
+  AndroidViewController _createAndroidViewController({
+    required bool hybridComposition,
+    required int id,
+    required String viewType,
+    required TextDirection layoutDirection,
+    required Map<String, dynamic> creationParams,
+  }) {
+    if (hybridComposition) {
+      return PlatformViewsService.initExpensiveAndroidView(
+        id: id,
+        viewType: viewType,
+        layoutDirection: layoutDirection,
+        creationParams: creationParams,
+        creationParamsCodec: const StandardMessageCodec(),
+      );
+    }
+    return PlatformViewsService.initSurfaceAndroidView(
+      id: id,
+      viewType: viewType,
+      layoutDirection: layoutDirection,
+      creationParams: creationParams,
+      creationParamsCodec: const StandardMessageCodec(),
+    );
   }
 
   void _onPlatformViewCreated(int id) {

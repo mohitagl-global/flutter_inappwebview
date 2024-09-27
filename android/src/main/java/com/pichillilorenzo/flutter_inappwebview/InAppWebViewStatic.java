@@ -1,5 +1,6 @@
 package com.pichillilorenzo.flutter_inappwebview;
 
+import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.os.Build;
 import android.webkit.ValueCallback;
@@ -79,8 +80,12 @@ public class InAppWebViewStatic implements MethodChannel.MethodCallHandler {
           result.success(false);
         break;
       case "getCurrentWebViewPackage":
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-          result.success(convertWebViewPackageToMap(WebViewCompat.getCurrentWebViewPackage(plugin.activity)));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && plugin != null && (plugin.activity != null || plugin.applicationContext != null)) {
+          Context context = plugin.activity;
+          if (context == null) {
+            context = plugin.applicationContext;
+          }
+          result.success(convertWebViewPackageToMap(WebViewCompat.getCurrentWebViewPackage(context)));
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
           //with Android Lollipop (API 21) they started to update the WebView
           //as a separate APK with the PlayStore and they added the
@@ -99,9 +104,11 @@ public class InAppWebViewStatic implements MethodChannel.MethodCallHandler {
         }
         break;
       case "setWebContentsDebuggingEnabled":
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        {
           boolean debuggingEnabled = (boolean) call.argument("debuggingEnabled");
-          WebView.setWebContentsDebuggingEnabled(debuggingEnabled);
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            WebView.setWebContentsDebuggingEnabled(debuggingEnabled);
+          }
         }
         result.success(true);
         break;

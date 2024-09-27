@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:core';
 
 import 'package:flutter/services.dart';
@@ -59,15 +58,12 @@ class AndroidInAppWebViewController {
     await _channel.invokeMethod('resume', args);
   }
 
-  ///Gets the URL that was originally requested for the current page.
-  ///This is not always the same as the URL passed to [InAppWebView.onLoadStarted] because although the load for that URL has begun,
-  ///the current page may not have changed. Also, there may have been redirects resulting in a different URL to that originally requested.
-  ///
-  ///**Official Android API**: https://developer.android.com/reference/android/webkit/WebView#getOriginalUrl()
+  ///Use [InAppWebViewController.getOriginalUrl] instead.
+  @Deprecated('Use `InAppWebViewController.getOriginalUrl` instead')
   Future<Uri?> getOriginalUrl() async {
     Map<String, dynamic> args = <String, dynamic>{};
     String? url = await _channel.invokeMethod('getOriginalUrl', args);
-    return url != null ? Uri.parse(url) : null;
+    return url != null ? Uri.tryParse(url) : null;
   }
 
   ///Scrolls the contents of this WebView down by half the page size.
@@ -114,7 +110,8 @@ class AndroidInAppWebViewController {
 
   ///Clears the internal back/forward list.
   ///
-  ///**Official Android API**: https://developer.android.com/reference/android/webkit/WebView#clearHistory()
+  ///**Supported Platforms/Implementations**:
+  ///- Android native WebView ([Official API - WebView.clearHistory](https://developer.android.com/reference/android/webkit/WebView#clearHistory())).
   Future<void> clearHistory() async {
     Map<String, dynamic> args = <String, dynamic>{};
     return await _channel.invokeMethod('clearHistory', args);
@@ -143,7 +140,7 @@ class AndroidInAppWebViewController {
     Map<String, dynamic> args = <String, dynamic>{};
     String? url = await _staticChannel.invokeMethod(
         'getSafeBrowsingPrivacyPolicyUrl', args);
-    return url != null ? Uri.parse(url) : null;
+    return url != null ? Uri.tryParse(url) : null;
   }
 
   ///Sets the list of hosts (domain names/IP addresses) that are exempt from SafeBrowsing checks. The list is global for all the WebViews.

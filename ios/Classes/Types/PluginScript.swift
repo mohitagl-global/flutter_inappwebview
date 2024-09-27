@@ -23,8 +23,14 @@ public class PluginScript : UserScript {
     }
     
     @available(iOS 14.0, *)
+    public override init(source: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool, in contentWorld: WKContentWorld) {
+        super.init(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld)
+        self.contentWorld = contentWorld
+    }
+    
+    @available(iOS 14.0, *)
     public init(source: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool, in contentWorld: WKContentWorld, requiredInAllContentWorlds: Bool = false, messageHandlerNames: [String] = []) {
-        super.init(groupName: <#String?#>, source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld)
+        super.init(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld)
         self.requiredInAllContentWorlds = requiredInAllContentWorlds
         self.messageHandlerNames = messageHandlerNames
     }

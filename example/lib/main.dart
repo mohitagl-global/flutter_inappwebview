@@ -11,7 +11,7 @@ import 'package:flutter_inappwebview_example/in_app_browser_example.screen.dart'
 // import 'package:path_provider/path_provider.dart';
 // import 'package:permission_handler/permission_handler.dart';
 
-// InAppLocalhostServer localhostServer = new InAppLocalhostServer();
+// InAppLocalhostServer localhostServer = new InAppLocalhostServer(documentRoot: 'assets');
 
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,12 +31,13 @@ Future main() async {
       AndroidServiceWorkerController serviceWorkerController =
           AndroidServiceWorkerController.instance();
 
-      serviceWorkerController.serviceWorkerClient = AndroidServiceWorkerClient(
+      await serviceWorkerController
+          .setServiceWorkerClient(AndroidServiceWorkerClient(
         shouldInterceptRequest: (request) async {
           print(request);
           return null;
         },
-      );
+      ));
     }
   }
 
