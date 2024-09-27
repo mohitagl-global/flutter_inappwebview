@@ -7,16 +7,22 @@
 
 import Foundation
 
-public class PlatformUtil: ChannelDelegate {
-    static let METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_inappwebview_platformutil"
-    var plugin: SwiftFlutterPlugin?
+class PlatformUtil: NSObject, FlutterPlugin {
+    static var registrar: FlutterPluginRegistrar?
+    static var channel: FlutterMethodChannel?
     
-    init(plugin: SwiftFlutterPlugin) {
-        super.init(channel: FlutterMethodChannel(name: PlatformUtil.METHOD_CHANNEL_NAME, binaryMessenger: plugin.registrar!.messenger()))
-        self.plugin = plugin
+    static func register(with registrar: FlutterPluginRegistrar) {
+        
     }
     
-    public override func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    init(registrar: FlutterPluginRegistrar) {
+        super.init()
+        InAppWebViewStatic.registrar = registrar
+        InAppWebViewStatic.channel = FlutterMethodChannel(name: "com.pichillilorenzo/flutter_inappwebview_platformutil", binaryMessenger: registrar.messenger())
+        registrar.addMethodCallDelegate(self, channel: InAppWebViewStatic.channel!)
+    }
+    
+    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as? NSDictionary
         
         switch call.method {
@@ -53,14 +59,5 @@ public class PlatformUtil: ChannelDelegate {
         formatter.dateFormat = format
         formatter.timeZone = timezone
         return formatter.string(from: PlatformUtil.getDateFromMilliseconds(date: date))
-    }
-    
-    public override func dispose() {
-        super.dispose()
-        plugin = nil
-    }
-    
-    deinit {
-        dispose()
     }
 }

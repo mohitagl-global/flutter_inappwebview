@@ -20,7 +20,6 @@ import android.webkit.WebViewClient;
 import android.widget.ProgressBar;
 import android.widget.SearchView;
 
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -46,30 +45,20 @@ import io.flutter.plugin.common.MethodChannel;
 public class InAppBrowserActivity extends AppCompatActivity implements InAppBrowserDelegate {
 
   static final String LOG_TAG = "InAppBrowserActivity";
-  @Nullable
   public MethodChannel channel;
   public Integer windowId;
   public String id;
-  @Nullable
   public InAppWebView webView;
-  @Nullable
   public PullToRefreshLayout pullToRefreshLayout;
-  @Nullable
   public ActionBar actionBar;
-  @Nullable
   public Menu menu;
-  @Nullable
   public SearchView searchView;
-  public InAppBrowserOptions options = new InAppBrowserOptions();
-  @Nullable
+  public InAppBrowserOptions options;
   public ProgressBar progressBar;
   public boolean isHidden = false;
-  @Nullable
   public String fromActivity;
   private List<ActivityResultListener> activityResultListeners = new ArrayList<>();
-  @Nullable
   public InAppWebViewMethodHandler methodCallDelegate;
-  @Nullable
   public InAppBrowserManager manager;
   
   @Override
@@ -77,17 +66,12 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
     super.onCreate(savedInstanceState);
 
     Bundle b = getIntent().getExtras();
-    if (b == null) return;
-    
+    assert b != null;
     id = b.getString("id");
 
     String managerId = b.getString("managerId");
-    manager = InAppBrowserManager.shared.get(managerId);
-    if (manager == null || manager.plugin == null|| manager.plugin.messenger == null) return;
-
-    Map<String, Object> optionsMap = (Map<String, Object>) b.getSerializable("options");
-    options.parse(optionsMap);
-
+    manager = (InAppBrowserManager) InAppBrowserManager.shared.get(managerId);
+    
     windowId = b.getInt("windowId");
 
     channel = new MethodChannel(manager.plugin.messenger, "com.pichillilorenzo/flutter_inappbrowser_" + id);
@@ -114,8 +98,12 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
 
     fromActivity = b.getString("fromActivity");
 
+    Map<String, Object> optionsMap = (Map<String, Object>) b.getSerializable("options");
     Map<String, Object> contextMenu = (Map<String, Object>) b.getSerializable("contextMenu");
     List<Map<String, Object>> initialUserScripts = (List<Map<String, Object>>) b.getSerializable("initialUserScripts");
+
+    options = new InAppBrowserOptions();
+    options.parse(optionsMap);
 
     InAppWebViewOptions webViewOptions = new InAppWebViewOptions();
     webViewOptions.parse(optionsMap);
@@ -171,15 +159,12 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
 
   public void onBrowserCreated() {
     Map<String, Object> obj = new HashMap<>();
-    if (channel != null) {
-      channel.invokeMethod("onBrowserCreated", obj);
-    }
+    channel.invokeMethod("onBrowserCreated", obj);
   }
 
   private void prepareView() {
-    if (webView != null) {
-      webView.prepare();
-    }
+
+    webView.prepare();
 
     if (options.hidden)
       hide();
@@ -193,87 +178,75 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
     else
       progressBar.setMax(100);
 
-    if (actionBar != null) {
-      actionBar.setDisplayShowTitleEnabled(!options.hideTitleBar);
+    actionBar.setDisplayShowTitleEnabled(!options.hideTitleBar);
 
-      if (options.hideToolbarTop)
-        actionBar.hide();
+    if (options.hideToolbarTop)
+      actionBar.hide();
 
-      if (options.toolbarTopBackgroundColor != null && !options.toolbarTopBackgroundColor.isEmpty())
-        actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor(options.toolbarTopBackgroundColor)));
+    if (options.toolbarTopBackgroundColor != null && !options.toolbarTopBackgroundColor.isEmpty())
+      actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor(options.toolbarTopBackgroundColor)));
 
-      if (options.toolbarTopFixedTitle != null && !options.toolbarTopFixedTitle.isEmpty())
-        actionBar.setTitle(options.toolbarTopFixedTitle);
-    }
+    if (options.toolbarTopFixedTitle != null && !options.toolbarTopFixedTitle.isEmpty())
+      actionBar.setTitle(options.toolbarTopFixedTitle);
+
   }
 
   @Override
   public boolean onCreateOptionsMenu(Menu m) {
     menu = m;
 
-    if (actionBar != null && (options.toolbarTopFixedTitle == null || options.toolbarTopFixedTitle.isEmpty()))
-      actionBar.setTitle(webView != null ? webView.getTitle() : "");
-
-    if (menu == null)
-      return super.onCreateOptionsMenu(m);
-
     MenuInflater inflater = getMenuInflater();
     // Inflate menu to add items to action bar if it is present.
     inflater.inflate(R.menu.menu_main, menu);
 
-    MenuItem menuItem = menu.findItem(R.id.menu_search);
-    if (menuItem != null) {
-      if (options.hideUrlBar)
-        menuItem.setVisible(false);
+    searchView = (SearchView) menu.findItem(R.id.menu_search).getActionView();
+    searchView.setFocusable(true);
 
-      searchView = (SearchView) menuItem.getActionView();
-      if (searchView != null) {
-        searchView.setFocusable(true);
+    if (options.hideUrlBar)
+      menu.findItem(R.id.menu_search).setVisible(false);
 
-        searchView.setQuery(webView != null ? webView.getUrl() : "", false);
+    searchView.setQuery(webView.getUrl(), false);
 
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
-          @Override
-          public boolean onQueryTextSubmit(String query) {
-            if (!query.isEmpty()) {
-              if (webView != null)
-                webView.loadUrl(query);
-              if (searchView != null) {
-                searchView.setQuery("", false);
-                searchView.setIconified(true);
-              }
-              return true;
-            }
-            return false;
-          }
+    if (options.toolbarTopFixedTitle == null || options.toolbarTopFixedTitle.isEmpty())
+      actionBar.setTitle(webView.getTitle());
 
-          @Override
-          public boolean onQueryTextChange(String newText) {
-            return false;
-          }
+    searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+      @Override
+      public boolean onQueryTextSubmit(String query) {
+        if (!query.isEmpty()) {
+          webView.loadUrl(query);
+          searchView.setQuery("", false);
+          searchView.setIconified(true);
+          return true;
+        }
+        return false;
+      }
 
-        });
+      @Override
+      public boolean onQueryTextChange(String newText) {
+        return false;
+      }
 
-        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
-          @Override
-          public boolean onClose() {
-            if (searchView != null && searchView.getQuery().toString().isEmpty())
-              searchView.setQuery(webView != null ? webView.getUrl() : "", false);
-            return false;
-          }
-        });
+    });
 
-        searchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
-          @Override
-          public void onFocusChange(View view, boolean b) {
-            if (!b && searchView != null) {
-              searchView.setQuery("", false);
-              searchView.setIconified(true);
-            }
-          }
-        });
-      } 
-    }
+    searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+      @Override
+      public boolean onClose() {
+        if (searchView.getQuery().toString().isEmpty())
+          searchView.setQuery(webView.getUrl(), false);
+        return false;
+      }
+    });
+
+    searchView.setOnQueryTextFocusChangeListener(new View.OnFocusChangeListener() {
+      @Override
+      public void onFocusChange(View view, boolean b) {
+        if (!b) {
+          searchView.setQuery("", false);
+          searchView.setIconified(true);
+        }
+      }
+    });
 
     return true;
   }
@@ -300,9 +273,7 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
 
   public void close(final MethodChannel.Result result) {
     Map<String, Object> obj = new HashMap<>();
-    if (channel != null) {
-      channel.invokeMethod("onExit", obj);
-    }
+    channel.invokeMethod("onExit", obj);
 
     dispose();
 
@@ -339,9 +310,6 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
   }
 
   public void hide() {
-    if (fromActivity == null) {
-      return;
-    }
     try {
       isHidden = true;
       Intent openActivity = new Intent(this, Class.forName(fromActivity));
@@ -371,7 +339,7 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
   public void shareButtonClicked(MenuItem item) {
     Intent share = new Intent(Intent.ACTION_SEND);
     share.setType("text/plain");
-    share.putExtra(Intent.EXTRA_TEXT, webView != null ? webView.getUrl() : "");
+    share.putExtra(Intent.EXTRA_TEXT, webView.getUrl());
     startActivity(Intent.createChooser(share, "Share"));
   }
 
@@ -387,9 +355,7 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
 
     InAppWebViewOptions newInAppWebViewOptions = new InAppWebViewOptions();
     newInAppWebViewOptions.parse(newOptionsMap);
-    if (webView != null) {
-      webView.setOptions(newInAppWebViewOptions, newOptionsMap);
-    }
+    webView.setOptions(newInAppWebViewOptions, newOptionsMap);
 
     if (newOptionsMap.get("hidden") != null && options.hidden != newOptions.hidden) {
       if (newOptions.hidden)
@@ -405,27 +371,24 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
         progressBar.setMax(100);
     }
 
-    if (actionBar != null && newOptionsMap.get("hideTitleBar") != null && options.hideTitleBar != newOptions.hideTitleBar)
+    if (newOptionsMap.get("hideTitleBar") != null && options.hideTitleBar != newOptions.hideTitleBar)
       actionBar.setDisplayShowTitleEnabled(!newOptions.hideTitleBar);
 
-    if (actionBar != null && newOptionsMap.get("hideToolbarTop") != null && options.hideToolbarTop != newOptions.hideToolbarTop) {
+    if (newOptionsMap.get("hideToolbarTop") != null && options.hideToolbarTop != newOptions.hideToolbarTop) {
       if (newOptions.hideToolbarTop)
         actionBar.hide();
       else
         actionBar.show();
     }
 
-    if (actionBar != null && newOptionsMap.get("toolbarTopBackgroundColor") != null &&
-            !Util.objEquals(options.toolbarTopBackgroundColor, newOptions.toolbarTopBackgroundColor) &&
+    if (newOptionsMap.get("toolbarTopBackgroundColor") != null && !Util.objEquals(options.toolbarTopBackgroundColor, newOptions.toolbarTopBackgroundColor) &&
             !newOptions.toolbarTopBackgroundColor.isEmpty())
       actionBar.setBackgroundDrawable(new ColorDrawable(Color.parseColor(newOptions.toolbarTopBackgroundColor)));
 
-    if (actionBar != null && newOptionsMap.get("toolbarTopFixedTitle") != null &&
-            !Util.objEquals(options.toolbarTopFixedTitle, newOptions.toolbarTopFixedTitle) &&
-            !newOptions.toolbarTopFixedTitle.isEmpty())
+    if (newOptionsMap.get("toolbarTopFixedTitle") != null && !Util.objEquals(options.toolbarTopFixedTitle, newOptions.toolbarTopFixedTitle) && !newOptions.toolbarTopFixedTitle.isEmpty())
       actionBar.setTitle(newOptions.toolbarTopFixedTitle);
 
-    if (menu != null && newOptionsMap.get("hideUrlBar") != null && options.hideUrlBar != newOptions.hideUrlBar) {
+    if (newOptionsMap.get("hideUrlBar") != null && options.hideUrlBar != newOptions.hideUrlBar) {
       if (newOptions.hideUrlBar)
         menu.findItem(R.id.menu_search).setVisible(false);
       else
@@ -436,7 +399,7 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
   }
 
   public Map<String, Object> getOptions() {
-    Map<String, Object> webViewOptionsMap = webView != null ? webView.getOptions() : null;
+    Map<String, Object> webViewOptionsMap = webView.getOptions();
     if (options == null || webViewOptionsMap == null)
       return null;
 
@@ -523,17 +486,14 @@ public class InAppBrowserActivity extends AppCompatActivity implements InAppBrow
   }
 
   public void dispose() {
-    if (channel != null) {
-      channel.setMethodCallHandler(null);
-      channel = null;
-    }
+    channel.setMethodCallHandler(null);
     activityResultListeners.clear();
     if (methodCallDelegate != null) {
       methodCallDelegate.dispose();
       methodCallDelegate = null;
     }
     if (webView != null) {
-      if (manager != null && manager.plugin != null && manager.plugin.activityPluginBinding != null) {
+      if (manager.plugin.activityPluginBinding != null) {
         manager.plugin.activityPluginBinding.removeActivityResultListener(webView.inAppWebViewChromeClient);
       }
       ViewGroup vg = (ViewGroup) (webView.getParent());

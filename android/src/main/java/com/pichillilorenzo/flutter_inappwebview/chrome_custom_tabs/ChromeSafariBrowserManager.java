@@ -7,7 +7,6 @@ import android.os.Bundle;
 import androidx.annotation.Nullable;
 
 import com.pichillilorenzo.flutter_inappwebview.InAppWebViewFlutterPlugin;
-import com.pichillilorenzo.flutter_inappwebview.Util;
 
 import java.io.Serializable;
 import java.util.HashMap;
@@ -41,22 +40,15 @@ public class ChromeSafariBrowserManager implements MethodChannel.MethodCallHandl
 
     switch (call.method) {
       case "open":
-        if (plugin != null && plugin.activity != null) {
+        {
           String url = (String) call.argument("url");
           HashMap<String, Object> options = (HashMap<String, Object>) call.argument("options");
-          HashMap<String, Object> actionButton = (HashMap<String, Object>) call.argument("actionButton");
           List<HashMap<String, Object>> menuItemList = (List<HashMap<String, Object>>) call.argument("menuItemList");
-          open(plugin.activity, id, url, options, actionButton, menuItemList, result);
-        } else {
-          result.success(false);
+          open(plugin.activity, id, url, options, menuItemList, result);
         }
         break;
       case "isAvailable":
-        if (plugin != null && plugin.activity != null) {
-          result.success(CustomTabActivityHelper.isAvailable(plugin.activity));
-        } else {
-          result.success(false);
-        }
+        result.success(CustomTabActivityHelper.isAvailable(plugin.activity));
         break;
       default:
         result.notImplemented();
@@ -64,7 +56,6 @@ public class ChromeSafariBrowserManager implements MethodChannel.MethodCallHandl
   }
 
   public void open(Activity activity, String id, String url, HashMap<String, Object> options,
-                   HashMap<String, Object> actionButton,
                    List<HashMap<String, Object>> menuItemList, MethodChannel.Result result) {
 
     Intent intent = null;
@@ -74,20 +65,11 @@ public class ChromeSafariBrowserManager implements MethodChannel.MethodCallHandl
     extras.putString("id", id);
     extras.putString("managerId", this.id);
     extras.putSerializable("options", options);
-    extras.putSerializable("actionButton", (Serializable) actionButton);
     extras.putSerializable("menuItemList", (Serializable) menuItemList);
 
-    Boolean isSingleInstance = (Boolean) Util.getOrDefault(options, "isSingleInstance", false);
-    Boolean isTrustedWebActivity = (Boolean) Util.getOrDefault(options, "isTrustedWebActivity", false);
     if (CustomTabActivityHelper.isAvailable(activity)) {
-      intent = new Intent(activity, !isSingleInstance ? 
-              (!isTrustedWebActivity ? ChromeCustomTabsActivity.class : TrustedWebActivity.class) :
-              (!isTrustedWebActivity ? ChromeCustomTabsActivitySingleInstance.class : TrustedWebActivitySingleInstance.class));
+      intent = new Intent(activity, ChromeCustomTabsActivity.class);
       intent.putExtras(extras);
-      Boolean noHistory = (Boolean) Util.getOrDefault(options, "noHistory", false);
-      if (noHistory) {
-        intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-      }
       activity.startActivity(intent);
       result.success(true);
       return;

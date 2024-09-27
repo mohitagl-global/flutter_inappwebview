@@ -7,7 +7,6 @@ import android.webkit.WebSettings;
 import androidx.annotation.Nullable;
 
 import com.pichillilorenzo.flutter_inappwebview.Options;
-import com.pichillilorenzo.flutter_inappwebview.types.InAppWebViewInterface;
 import com.pichillilorenzo.flutter_inappwebview.types.PreferredContentModeOptionType;
 
 import java.util.ArrayList;
@@ -18,7 +17,7 @@ import java.util.Map;
 import static android.webkit.WebSettings.LayoutAlgorithm.NARROW_COLUMNS;
 import static android.webkit.WebSettings.LayoutAlgorithm.NORMAL;
 
-public class InAppWebViewOptions implements Options<InAppWebViewInterface> {
+public class InAppWebViewOptions implements Options<InAppWebView> {
 
   public static final String LOG_TAG = "InAppWebViewOptions";
 
@@ -95,8 +94,7 @@ public class InAppWebViewOptions implements Options<InAppWebViewInterface> {
   public Integer scrollBarDefaultDelayBeforeFade = null;
   public Boolean scrollbarFadingEnabled = true;
   public Integer scrollBarFadeDuration = null;
-  @Nullable
-  public Map<String, Object> rendererPriorityPolicy = null;
+  public Map<String, Object> rendererPriorityPolicy = new HashMap<>();
   public Boolean useShouldInterceptRequest = false;
   public Boolean useOnRenderProcessGone = false;
   public Boolean disableDefaultErrorPage = false;
@@ -457,10 +455,9 @@ public class InAppWebViewOptions implements Options<InAppWebViewInterface> {
   }
 
   @Override
-  public Map<String, Object> getRealOptions(InAppWebViewInterface inAppWebView) {
+  public Map<String, Object> getRealOptions(InAppWebView webView) {
     Map<String, Object> realOptions = toMap();
-    if (inAppWebView instanceof InAppWebView) {
-      InAppWebView webView = (InAppWebView) inAppWebView;
+    if (webView != null) {
       WebSettings settings = webView.getSettings();
       realOptions.put("userAgent", settings.getUserAgentString());
       realOptions.put("javaScriptEnabled", settings.getJavaScriptEnabled());

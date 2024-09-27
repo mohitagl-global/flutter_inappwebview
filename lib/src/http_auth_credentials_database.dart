@@ -1,70 +1,39 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+
+import 'types.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_inappwebview_platform_interface/flutter_inappwebview_platform_interface.dart';
 
-/// Object specifying creation parameters for creating a [IOSHttpAuthCredentialDatabase].
-///
-/// When adding additional fields make sure they can be null or have a default
-/// value to avoid breaking changes. See [PlatformHttpAuthCredentialDatabaseCreationParams] for
-/// more information.
-@immutable
-class IOSHttpAuthCredentialDatabaseCreationParams
-    extends PlatformHttpAuthCredentialDatabaseCreationParams {
-  /// Creates a new [IOSHttpAuthCredentialDatabaseCreationParams] instance.
-  const IOSHttpAuthCredentialDatabaseCreationParams(
-    // This parameter prevents breaking changes later.
-    // ignore: avoid_unused_constructor_parameters
-    PlatformHttpAuthCredentialDatabaseCreationParams params,
-  ) : super();
-
-  /// Creates a [IOSHttpAuthCredentialDatabaseCreationParams] instance based on [PlatformHttpAuthCredentialDatabaseCreationParams].
-  factory IOSHttpAuthCredentialDatabaseCreationParams.fromPlatformHttpAuthCredentialDatabaseCreationParams(
-      PlatformHttpAuthCredentialDatabaseCreationParams params) {
-    return IOSHttpAuthCredentialDatabaseCreationParams(params);
-  }
-}
-
-///{@macro flutter_inappwebview_platform_interface.PlatformHttpAuthCredentialDatabase}
-class IOSHttpAuthCredentialDatabase extends PlatformHttpAuthCredentialDatabase
-    with ChannelController {
-  /// Creates a new [IOSHttpAuthCredentialDatabase].
-  IOSHttpAuthCredentialDatabase(
-      PlatformHttpAuthCredentialDatabaseCreationParams params)
-      : super.implementation(
-          params is IOSHttpAuthCredentialDatabaseCreationParams
-              ? params
-              : IOSHttpAuthCredentialDatabaseCreationParams
-                  .fromPlatformHttpAuthCredentialDatabaseCreationParams(params),
-        ) {
-    channel = const MethodChannel(
-        'com.pichillilorenzo/flutter_inappwebview_credential_database');
-    handler = handleMethod;
-    initMethodCallHandler();
-  }
-
-  static IOSHttpAuthCredentialDatabase? _instance;
+///Class that implements a singleton object (shared instance) which manages the shared HTTP auth credentials cache.
+///On iOS, this class uses the [URLCredentialStorage](https://developer.apple.com/documentation/foundation/urlcredentialstorage) class.
+///On Android, this class has a custom implementation using `android.database.sqlite.SQLiteDatabase` because
+///[WebViewDatabase](https://developer.android.com/reference/android/webkit/WebViewDatabase)
+///doesn't offer the same functionalities as iOS `URLCredentialStorage`.
+class HttpAuthCredentialDatabase {
+  static HttpAuthCredentialDatabase? _instance;
+  static const MethodChannel _channel = const MethodChannel(
+      'com.pichillilorenzo/flutter_inappwebview_credential_database');
 
   ///Gets the database shared instance.
-  static IOSHttpAuthCredentialDatabase instance() {
+  static HttpAuthCredentialDatabase instance() {
     return (_instance != null) ? _instance! : _init();
   }
 
-  static IOSHttpAuthCredentialDatabase _init() {
-    _instance = IOSHttpAuthCredentialDatabase(
-        IOSHttpAuthCredentialDatabaseCreationParams(
-            const PlatformHttpAuthCredentialDatabaseCreationParams()));
+  static HttpAuthCredentialDatabase _init() {
+    _channel.setMethodCallHandler(_handleMethod);
+    _instance = HttpAuthCredentialDatabase();
     return _instance!;
   }
 
-  Future<dynamic> _handleMethod(MethodCall call) async {}
+  static Future<dynamic> _handleMethod(MethodCall call) async {}
 
-  @override
+  ///Gets a map list of all HTTP auth credentials saved.
+  ///Each map contains the key `protectionSpace` of type [URLProtectionSpace]
+  ///and the key `credentials` of type `List<URLCredential>` that contains all the HTTP auth credentials saved for that `protectionSpace`.
   Future<List<URLProtectionSpaceHttpAuthCredentials>>
       getAllAuthCredentials() async {
     Map<String, dynamic> args = <String, dynamic>{};
     List<dynamic> allCredentials =
-        await channel?.invokeMethod<List>('getAllAuthCredentials', args) ?? [];
+        await _channel.invokeMethod('getAllAuthCredentials', args);
 
     List<URLProtectionSpaceHttpAuthCredentials> result = [];
 
@@ -78,7 +47,7 @@ class IOSHttpAuthCredentialDatabase extends PlatformHttpAuthCredentialDatabase
     return result;
   }
 
-  @override
+  ///Gets all the HTTP auth credentials saved for that [protectionSpace].
   Future<List<URLCredential>> getHttpAuthCredentials(
       {required URLProtectionSpace protectionSpace}) async {
     Map<String, dynamic> args = <String, dynamic>{};
@@ -87,7 +56,7 @@ class IOSHttpAuthCredentialDatabase extends PlatformHttpAuthCredentialDatabase
     args.putIfAbsent("realm", () => protectionSpace.realm);
     args.putIfAbsent("port", () => protectionSpace.port);
     List<dynamic> credentialList =
-        await channel?.invokeMethod<List>('getHttpAuthCredentials', args) ?? [];
+        await _channel.invokeMethod('getHttpAuthCredentials', args);
     List<URLCredential> credentials = [];
     for (Map<dynamic, dynamic> map in credentialList) {
       var credential = URLCredential.fromMap(map.cast<String, dynamic>());
@@ -98,7 +67,7 @@ class IOSHttpAuthCredentialDatabase extends PlatformHttpAuthCredentialDatabase
     return credentials;
   }
 
-  @override
+  ///Saves an HTTP auth [credential] for that [protectionSpace].
   Future<void> setHttpAuthCredential(
       {required URLProtectionSpace protectionSpace,
       required URLCredential credential}) async {
@@ -109,10 +78,10 @@ class IOSHttpAuthCredentialDatabase extends PlatformHttpAuthCredentialDatabase
     args.putIfAbsent("port", () => protectionSpace.port);
     args.putIfAbsent("username", () => credential.username);
     args.putIfAbsent("password", () => credential.password);
-    await channel?.invokeMethod('setHttpAuthCredential', args);
+    await _channel.invokeMethod('setHttpAuthCredential', args);
   }
 
-  @override
+  ///Removes an HTTP auth [credential] for that [protectionSpace].
   Future<void> removeHttpAuthCredential(
       {required URLProtectionSpace protectionSpace,
       required URLCredential credential}) async {
@@ -123,10 +92,10 @@ class IOSHttpAuthCredentialDatabase extends PlatformHttpAuthCredentialDatabase
     args.putIfAbsent("port", () => protectionSpace.port);
     args.putIfAbsent("username", () => credential.username);
     args.putIfAbsent("password", () => credential.password);
-    await channel?.invokeMethod('removeHttpAuthCredential', args);
+    await _channel.invokeMethod('removeHttpAuthCredential', args);
   }
 
-  @override
+  ///Removes all the HTTP auth credentials saved for that [protectionSpace].
   Future<void> removeHttpAuthCredentials(
       {required URLProtectionSpace protectionSpace}) async {
     Map<String, dynamic> args = <String, dynamic>{};
@@ -134,21 +103,12 @@ class IOSHttpAuthCredentialDatabase extends PlatformHttpAuthCredentialDatabase
     args.putIfAbsent("protocol", () => protectionSpace.protocol);
     args.putIfAbsent("realm", () => protectionSpace.realm);
     args.putIfAbsent("port", () => protectionSpace.port);
-    await channel?.invokeMethod('removeHttpAuthCredentials', args);
+    await _channel.invokeMethod('removeHttpAuthCredentials', args);
   }
 
-  @override
+  ///Removes all the HTTP auth credentials saved in the database.
   Future<void> clearAllAuthCredentials() async {
     Map<String, dynamic> args = <String, dynamic>{};
-    await channel?.invokeMethod('clearAllAuthCredentials', args);
+    await _channel.invokeMethod('clearAllAuthCredentials', args);
   }
-
-  @override
-  void dispose() {
-    // empty
-  }
-}
-
-extension InternalHttpAuthCredentialDatabase on IOSHttpAuthCredentialDatabase {
-  get handleMethod => _handleMethod;
 }

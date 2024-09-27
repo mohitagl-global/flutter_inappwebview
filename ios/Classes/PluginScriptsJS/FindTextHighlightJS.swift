@@ -42,7 +42,7 @@ window.\(JAVASCRIPT_BRIDGE_NAME)._findAllAsyncForElement = function(element, key
 
         span.setAttribute(
           "id",
-          "\(JAVASCRIPT_BRIDGE_NAME)_SEARCH_WORD_" + \(FIND_TEXT_HIGHLIGHT_SEARCH_RESULT_COUNT_JS_SOURCE)
+          "WKWEBVIEW_SEARCH_WORD_" + \(FIND_TEXT_HIGHLIGHT_SEARCH_RESULT_COUNT_JS_SOURCE)
         );
         span.setAttribute("class", "\(JAVASCRIPT_BRIDGE_NAME)_Highlight");
         var backgroundColor = \(FIND_TEXT_HIGHLIGHT_SEARCH_RESULT_COUNT_JS_SOURCE) == 0 ? "#FF9732" : "#FFFF00";
@@ -111,7 +111,7 @@ window.\(JAVASCRIPT_BRIDGE_NAME)._findAllAsync = function(keyword) {
   );
 }
 
-// helper function, recursively removes the highlights in elements and their children
+// helper function, recursively removes the highlights in elements and their childs
 window.\(JAVASCRIPT_BRIDGE_NAME)._clearMatchesForElement = function(element) {
   if (element) {
     if (element.nodeType == 1) {

@@ -8,20 +8,19 @@
 import Foundation
 import WebKit
 
-public class UserScript: WKUserScript {
+public class UserScript : WKUserScript {
     var groupName: String?
-
     private var contentWorldWrapper: Any?
     @available(iOS 14.0, *)
     var contentWorld: WKContentWorld {
-      get {
-        if let value = contentWorldWrapper as? WKContentWorld {
-          return value
+          get {
+            if let value = contentWorldWrapper as? WKContentWorld {
+              return value
+            }
+            return .page
+          }
+          set { contentWorldWrapper = newValue }
         }
-        return .page
-      }
-      set { contentWorldWrapper = newValue }
-    }
     
     public override init(source: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool) {
         super.init(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly)
@@ -30,12 +29,6 @@ public class UserScript: WKUserScript {
     public init(groupName: String?, source: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool) {
         super.init(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly)
         self.groupName = groupName
-    }
-    
-    @available(iOS 14.0, *)
-    public override init(source: String, injectionTime: WKUserScriptInjectionTime, forMainFrameOnly: Bool, in contentWorld: WKContentWorld) {
-        super.init(source: source, injectionTime: injectionTime, forMainFrameOnly: forMainFrameOnly, in: contentWorld)
-        self.contentWorld = contentWorld
     }
 
     @available(iOS 14.0, *)
@@ -57,7 +50,7 @@ public class UserScript: WKUserScript {
                 groupName: map["groupName"] as? String,
                 source: map["source"] as! String,
                 injectionTime: WKUserScriptInjectionTime.init(rawValue: map["injectionTime"] as! Int) ?? .atDocumentStart,
-                forMainFrameOnly: map["forMainFrameOnly"] as! Bool,
+                forMainFrameOnly: map["iosForMainFrameOnly"] as! Bool,
                 in: contentWorld
             )
         }
@@ -65,7 +58,7 @@ public class UserScript: WKUserScript {
             groupName: map["groupName"] as? String,
             source: map["source"] as! String,
             injectionTime: WKUserScriptInjectionTime.init(rawValue: map["injectionTime"] as! Int) ?? .atDocumentStart,
-            forMainFrameOnly: map["forMainFrameOnly"] as! Bool
+            forMainFrameOnly: map["iosForMainFrameOnly"] as! Bool
         )
     }
 }

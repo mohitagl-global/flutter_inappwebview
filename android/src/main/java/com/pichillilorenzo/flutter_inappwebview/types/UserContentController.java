@@ -60,7 +60,7 @@ public class UserContentController {
     return js;
   }
 
-  public String generateCodeForDocumentStart() {
+  private String generateCodeForDocumentStart() {
     UserScriptInjectionTime injectionTime = UserScriptInjectionTime.AT_DOCUMENT_START;
     String js = "";
     js += generatePluginScriptsCodeAt(injectionTime);
@@ -70,7 +70,7 @@ public class UserContentController {
     return js;
   }
 
-  public String generateContentWorldsCreatorCode() {
+  private String generateContentWorldsCreatorCode() {
     if (this.contentWorlds.size() == 1) {
       return "";
     }
@@ -94,7 +94,7 @@ public class UserContentController {
 
   }
 
-  public String generatePluginScriptsCodeAt(UserScriptInjectionTime injectionTime) {
+  private String generatePluginScriptsCodeAt(UserScriptInjectionTime injectionTime) {
     StringBuilder js = new StringBuilder();
     LinkedHashSet<PluginScript> scripts = this.getPluginScriptsAt(injectionTime);
     for (PluginScript script : scripts) {
@@ -105,7 +105,7 @@ public class UserContentController {
     return js.toString();
   }
 
-  public String generateUserOnlyScriptsCodeAt(UserScriptInjectionTime injectionTime) {
+  private String generateUserOnlyScriptsCodeAt(UserScriptInjectionTime injectionTime) {
     StringBuilder js = new StringBuilder();
     LinkedHashSet<UserScript> scripts = this.getUserOnlyScriptsAt(injectionTime);
     for (UserScript script : scripts) {

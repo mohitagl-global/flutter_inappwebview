@@ -15,7 +15,6 @@ public class JavaScriptBridgeJS {
   );
 
   public static final String JAVASCRIPT_UTIL_VAR_NAME = "window." + JAVASCRIPT_BRIDGE_NAME + "._Util";
-  public static final String WEB_MESSAGE_CHANNELS_VARIABLE_NAME = "window." + JAVASCRIPT_BRIDGE_NAME + "._webMessageChannels";
 
   public static final String UTIL_JS_SOURCE = JAVASCRIPT_UTIL_VAR_NAME + " = {" +
           "    support: {" +
@@ -132,10 +131,10 @@ public class JavaScriptBridgeJS {
           "    }," +
           "    convertBodyRequest: function(body) {" +
           "        if (body == null) {" +
-          "            return new Promise(function(resolve, reject) { resolve(null); });" +
+          "            return new Promise((resolve, reject) => resolve(null));" +
           "        }" +
           "        if (" + JAVASCRIPT_UTIL_VAR_NAME + ".isString(body) || (" + JAVASCRIPT_UTIL_VAR_NAME + ".support.searchParams && body instanceof URLSearchParams)) {" +
-          "            return new Promise(function(resolve, reject) { resolve(body.toString()); });" +
+          "            return new Promise((resolve, reject) => resolve(body.toString()));" +
           "        }" +
           "        if (window.Response != null) {" +
           "            return new Response(body).arrayBuffer().then(function(arrayBuffer) {" +
@@ -147,8 +146,7 @@ public class JavaScriptBridgeJS {
           "        });" +
           "    }," +
           "    arrayBufferToString: function(arrayBuffer) {" +
-          "        var uint8Array = new Uint8Array(arrayBuffer);" +
-          "        return uint8Array.reduce(function(acc, i) { return acc += String.fromCharCode.apply(null, [i]); }, '');" +
+          "        return String.fromCharCode.apply(String, arrayBuffer);" +
           "    }," +
           "    isBodyFormData: function(bodyString) {" +
           "        return bodyString.indexOf('------WebKitFormBoundary') >= 0;" +
