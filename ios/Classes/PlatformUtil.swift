@@ -7,22 +7,16 @@
 
 import Foundation
 
-class PlatformUtil: NSObject, FlutterPlugin {
-    static var registrar: FlutterPluginRegistrar?
-    static var channel: FlutterMethodChannel?
+public class PlatformUtil: ChannelDelegate {
+    static let METHOD_CHANNEL_NAME = "com.pichillilorenzo/flutter_inappwebview_platformutil"
+    var plugin: SwiftFlutterPlugin?
     
-    static func register(with registrar: FlutterPluginRegistrar) {
-        
+    init(plugin: SwiftFlutterPlugin) {
+        super.init(channel: FlutterMethodChannel(name: PlatformUtil.METHOD_CHANNEL_NAME, binaryMessenger: plugin.registrar!.messenger()))
+        self.plugin = plugin
     }
     
-    init(registrar: FlutterPluginRegistrar) {
-        super.init()
-        InAppWebViewStatic.registrar = registrar
-        InAppWebViewStatic.channel = FlutterMethodChannel(name: "com.pichillilorenzo/flutter_inappwebview_platformutil", binaryMessenger: registrar.messenger())
-        registrar.addMethodCallDelegate(self, channel: InAppWebViewStatic.channel!)
-    }
-    
-    public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    public override func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         let arguments = call.arguments as? NSDictionary
         
         switch call.method {
@@ -61,9 +55,12 @@ class PlatformUtil: NSObject, FlutterPlugin {
         return formatter.string(from: PlatformUtil.getDateFromMilliseconds(date: date))
     }
     
-    public func dispose() {
-        PlatformUtil.channel?.setMethodCallHandler(nil)
-        PlatformUtil.channel = nil
-        PlatformUtil.registrar = nil
+    public override func dispose() {
+        super.dispose()
+        plugin = nil
+    }
+    
+    deinit {
+        dispose()
     }
 }
